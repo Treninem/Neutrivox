@@ -18,6 +18,7 @@
         <Button x:Name="ProjectsNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Projects">📁  Проекты</Button>
         <Button x:Name="DevicesNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Devices">▣  Оборудование</Button>
         <Button x:Name="SchemeNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Scheme">⌁  Схема</Button>
+        <Button x:Name="LogicNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Logic">⚡  Логика</Button>
         <Button x:Name="InputsNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Inputs">⇄  Входы и выходы</Button>
         <Button x:Name="CheckNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Check">✓  Проверка</Button>
         <Button x:Name="SettingsNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Settings">⚙  Настройки</Button>
@@ -33,7 +34,7 @@
         <TextBlock x:Name="DeviceCountText" Text="Оборудование: 0" Foreground="#AAB8D6"/>
         <Separator/>
         <TextBlock x:Name="QuickStartTitle" Text="Быстрый старт" FontWeight="SemiBold" Foreground="White"/>
-        <TextBlock x:Name="QuickStartText" Text="1. Создайте проект&#x0a;2. Добавьте оборудование&#x0a;3. Настройте входы и выходы&#x0a;4. Проверьте конфигурацию" TextWrapping="Wrap" Foreground="#AAB8D6"/>
+        <TextBlock x:Name="QuickStartText" Text="1. Создайте проект&#x0a;2. Добавьте оборудование&#x0a;3. Настройте входы и выходы&#x0a;4. Создайте логику&#x0a;5. Проверьте конфигурацию" TextWrapping="Wrap" Foreground="#AAB8D6"/>
       </StackPanel></Border>
     </Grid>
   </Grid>
