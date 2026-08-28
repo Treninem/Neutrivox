@@ -14,7 +14,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Restore
+      - name: Restore solution
         run: dotnet restore Neutrivox.sln
-      - name: Build
+      - name: Build application
         run: dotnet build Neutrivox.sln --configuration Release --no-restore
+      - name: Build smoke test
+        run: dotnet build tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release
+      - name: Run smoke test
+        run: dotnet run --project tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release --no-build
