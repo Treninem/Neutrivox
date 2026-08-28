@@ -16,7 +16,7 @@ public sealed class LicenseActivationService
 {
     private readonly CommercialPlanCatalogService _plans;
     private readonly ILicenseSignatureVerifier _signatureVerifier;
-    private readonly HashSet<string> _activatedKeys = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _activatedKeys = new(StringComparer.Ordinal);
 
     public LicenseActivationService(CommercialPlanCatalogService plans, ILicenseSignatureVerifier signatureVerifier)
     {
@@ -39,17 +39,27 @@ public sealed class LicenseActivationService
             return Fail("Лицензионный ключ неполный.", "License key is incomplete.");
         if (!_signatureVerifier.Verify(payload))
             return Fail("Подпись лицензионного ключа недействительна.", "License key signature is invalid.");
+        if (!string.IsNullOrWhiteSpace(payload.BoundDeviceFingerprint) && !CryptographicEquals(payload.BoundDeviceFingerprint, request.DeviceFingerprint))
+            return Fail("Ключ привязан к другому устройству.", "License key is bound to another device.");
 
         var plan = _plans.Find(payload.PlanId);
         if (plan is null || !plan.IsPubliclySellable && plan.Edition != ProductEdition.Owner)
             return Fail("Лицензионный план не поддерживается.", "License plan is not supported.");
         if (payload.ExpiresAtUtc is not null && payload.ExpiresAtUtc <= nowUtc)
             return Fail("Срок действия лицензии истёк.", "License has expired.");
-        if (!_activatedKeys.Add(payload.KeyId))
-            return Fail("Этот ключ уже активирован на текущем экземпляре.", "This key is already activated in the current instance.");
+        if (_activatedKeys.TryGetValue(payload.KeyId, out var fingerprint))
+        {
+            if (!CryptographicEquals(fingerprint, request.DeviceFingerprint))
+                return Fail("Этот ключ уже привязан к другому устройству.", "This license key is already bound to another device.");
+            return Fail("Этот ключ уже активирован на данном устройстве.", "This license key is already activated on this device.");
+        }
 
+        _activatedKeys[payload.KeyId] = request.DeviceFingerprint;
         return new(true, plan.Edition, payload.ExpiresAtUtc, $"Лицензия {plan.NameRu} активирована.", $"License {plan.NameEn} activated.");
     }
+
+    private static bool CryptographicEquals(string left, string right) =>
+        string.Equals(left.Trim(), right.Trim(), StringComparison.Ordinal);
 
     private static LicenseActivationResult Fail(string ru, string en) => new(false, null, null, ru, en);
 }
