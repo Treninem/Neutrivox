@@ -1,0 +1,42 @@
+name: Windows Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*.*.*']
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore Neutrivox.sln
+      - name: Release build
+        run: dotnet build Neutrivox.sln --configuration Release --no-restore
+      - name: Smoke build
+        run: dotnet build tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release
+      - name: Smoke test
+        run: dotnet run --project tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release --no-build
+      - name: Publish Windows x64
+        shell: pwsh
+        run: ./scripts/Build-Windows.ps1 -Configuration Release -Runtime win-x64 -OutputDirectory artifacts/windows
+      - name: Create archive
+        shell: pwsh
+        run: Compress-Archive -Path artifacts/windows/* -DestinationPath artifacts/Neutrivox-win-x64.zip -Force
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Neutrivox-win-x64
+          path: artifacts/Neutrivox-win-x64.zip
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/Neutrivox-win-x64.zip
+          generate_release_notes: true
