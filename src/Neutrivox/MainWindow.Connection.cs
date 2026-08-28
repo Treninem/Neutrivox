@@ -11,7 +11,8 @@ public partial class MainWindow
     private readonly SerialPortInventoryService _serialPorts = new();
     private readonly DeviceDiscoveryService _discovery = new();
     private readonly DeviceProfileRegistry _profiles = new();
-    private readonly DeviceBindingWorkflowService _bindingWorkflow;
+    private DeviceBindingWorkflowService _bindingWorkflow = null!;
+    private bool _connectionServicesInitialized;
     private IReadOnlyList<DiscoveredDevice> _discoveredDevices = [];
     private string? _selectedSerialPort;
 
@@ -19,11 +20,13 @@ public partial class MainWindow
 
     private void EnsureConnectionServices()
     {
-        if (_profiles.Profiles.Count > 0) return;
+        if (_connectionServicesInitialized) return;
         BuiltInDeviceProfiles.RegisterVerifiedProfiles(_profiles);
         VerifiedOwenProfiles.Register(_profiles);
         VerifiedOwenGatewayProfiles.Register(_profiles);
+        _discovery.Register(new ModbusSerialDiscoveryProvider());
         _bindingWorkflow = new DeviceBindingWorkflowService(_profiles);
+        _connectionServicesInitialized = true;
     }
 
     private void ShowConnectionCenter()
@@ -51,8 +54,7 @@ public partial class MainWindow
             }
         }
 
-        var selected = new TextBlock { Text = T($"Выбран: {_selectedSerialPort ?? "не выбран"}", $"Selected: {_selectedSerialPort ?? "none"}"), Opacity = 0.7 };
-        panel.Children.Add(selected);
+        panel.Children.Add(new TextBlock { Text = T($"Выбран: {_selectedSerialPort ?? "не выбран"}", $"Selected: {_selectedSerialPort ?? "none"}"), Opacity = 0.7 });
 
         var scan = new Button { Content = T("Проверить Modbus RTU", "Scan Modbus RTU"), IsEnabled = _selectedSerialPort is not null };
         scan.Click += async (_, _) => await ScanSerialAsync();
@@ -78,8 +80,6 @@ public partial class MainWindow
     {
         if (string.IsNullOrWhiteSpace(_selectedSerialPort)) return;
         EnsureConnectionServices();
-        var provider = new ModbusSerialDiscoveryProvider();
-        _discovery.Register(provider);
         var result = await new DeviceDiscoveryWorkflowService(_discovery).RunAsync(_selectedSerialPort, includeEthernet: false, includeSerial: true);
         _discoveredDevices = result.Success ? result.Devices : [];
         ShowConnectionCenter();
@@ -96,7 +96,7 @@ public partial class MainWindow
         {
             foreach (var projectDevice in _project.Devices)
             {
-                var bind = new Button { Content = T($"Сопоставить с {projectDevice.Name}", $"Bind to {projectDevice.Name}") };
+                var bind = new Button { Content = T($"Предложить сопоставление: {projectDevice.Name}", $"Suggest binding: {projectDevice.Name}") };
                 bind.Click += (_, _) => BindDiscovered(projectDevice, discovered);
                 stack.Children.Add(bind);
             }
