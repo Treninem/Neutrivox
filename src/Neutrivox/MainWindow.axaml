@@ -18,7 +18,7 @@
         <Button x:Name="ProjectsNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Projects">📁  Проекты</Button>
         <Button x:Name="DevicesNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Devices">▣  Оборудование</Button>
         <Button x:Name="SchemeNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Scheme">⌁  Схема</Button>
-        <Button x:Name="LogicNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Logic">⚡  Логика</Button>
+        <Button x:Name="LogicNav" HorizontalContentAlignment="Left" Click="LogicNavigationButton_OnClick" Tag="Logic">⚡  Логика</Button>
         <Button x:Name="InputsNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Inputs">⇄  Входы и выходы</Button>
         <Button x:Name="CheckNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Check">✓  Проверка</Button>
         <Button x:Name="SettingsNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Settings">⚙  Настройки</Button>
