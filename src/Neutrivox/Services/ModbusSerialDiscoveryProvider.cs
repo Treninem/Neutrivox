@@ -79,7 +79,7 @@ public sealed class ModbusSerialDiscoveryProvider : IDeviceDiscoveryProvider
                     var chunk = new byte[Math.Min(port.BytesToRead, 64)];
                     var read = port.Read(chunk, 0, chunk.Length);
                     for (var i = 0; i < read; i++) buffer.Add(chunk[i]);
-                    if (buffer.Count >= 5 && _frames.TryParse(CollectionsMarshal.AsSpan(buffer), out var parsed) && parsed is not null)
+                    if (buffer.Count >= 5 && _frames.TryParse(buffer.ToArray(), out var parsed) && parsed is not null)
                     {
                         response = parsed;
                         return true;
