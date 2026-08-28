@@ -25,6 +25,7 @@ public sealed record LicenseKeyPayload(
     string KeyId,
     string PlanId,
     string Subject,
+    string? BoundDeviceFingerprint,
     DateTimeOffset IssuedAtUtc,
     DateTimeOffset? ExpiresAtUtc,
     string Signature);
