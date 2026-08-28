@@ -4,7 +4,7 @@
 #define MyAppExeName "Neutrivox.exe"
 
 [Setup]
-AppId={{B9B2F3E3-2B0A-4F16-AE5D-NEUTRIVOX01}
+AppId={{B9B2F3E3-2B0A-4F16-AE5D-5D2E8B9A71C4}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
