@@ -59,20 +59,16 @@ public partial class MainWindow
 
         PageContent.Children.Add(new TextBlock { Text = T("Виртуальные входы", "Virtual inputs"), FontSize = 18, FontWeight = Avalonia.Media.FontWeight.SemiBold, Margin = new Avalonia.Thickness(0, 10, 0, 4) });
         foreach (var device in _project.Devices)
-        {
             foreach (var channel in device.Channels.Where(x => x.Direction.Equals("Input", StringComparison.OrdinalIgnoreCase)))
                 AddVirtualInput(device, channel);
-        }
 
         PageContent.Children.Add(new TextBlock { Text = T("Виртуальные выходы", "Virtual outputs"), FontSize = 18, FontWeight = Avalonia.Media.FontWeight.SemiBold, Margin = new Avalonia.Thickness(0, 10, 0, 4) });
         foreach (var device in _project.Devices)
-        {
             foreach (var channel in device.Channels.Where(x => x.Direction.Equals("Output", StringComparison.OrdinalIgnoreCase)))
             {
                 _simulationSession.ChannelValues.TryGetValue(channel.Id, out var value);
                 PageContent.Children.Add(new TextBlock { Text = $"{device.Name} / {channel.Name}: {FormatValue(value)}", Margin = new Avalonia.Thickness(4) });
             }
-        }
 
         PageContent.Children.Add(new TextBlock { Text = T("Журнал симуляции", "Simulation trace"), FontSize = 18, FontWeight = Avalonia.Media.FontWeight.SemiBold, Margin = new Avalonia.Thickness(0, 10, 0, 4) });
         var entries = _simulationLog?.Recent(100) ?? [];
@@ -116,7 +112,7 @@ public partial class MainWindow
         if (_project is null || _simulationSession is null || _simulationLog is null) return;
         _simulationSessions.Start(_simulationSession);
         var result = _simulationWorkflow.RunCycle(_project, _simulationSession);
-        _simulationTrace.RecordExecution(_simulationLog, new LogicExecutionResult(result.Success, string.Join("; ", result.Errors), result.ExecutedInstructions));
+        _simulationTrace.RecordExecution(_simulationLog, new LogicExecutionResult(result.Success, result.ExecutedInstructions, result.Errors));
         foreach (var entry in result.Trace.Entries)
             if (!_simulationLog.Entries.Contains(entry)) _simulationLog.Entries.Add(entry);
         ShowSimulation();
