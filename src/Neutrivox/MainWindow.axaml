@@ -17,6 +17,7 @@
         <TextBlock x:Name="NavigationTitle" Text="Навигация" FontWeight="SemiBold" Foreground="#9FB0D0" Margin="8,6"/>
         <Button x:Name="ProjectsNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Projects">📁  Проекты</Button>
         <Button x:Name="DevicesNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Devices">▣  Оборудование</Button>
+        <Button x:Name="ConnectionNav" HorizontalContentAlignment="Left" Click="ConnectionNavigationButton_OnClick" Tag="Connection">↔  Подключение</Button>
         <Button x:Name="SchemeNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Scheme">⌁  Схема</Button>
         <Button x:Name="LogicNav" HorizontalContentAlignment="Left" Click="LogicNavigationButton_OnClick" Tag="Logic">⚡  Логика</Button>
         <Button x:Name="SimulationNav" HorizontalContentAlignment="Left" Click="SimulationNavigationButton_OnClick" Tag="Simulation">▶  Симуляция</Button>
