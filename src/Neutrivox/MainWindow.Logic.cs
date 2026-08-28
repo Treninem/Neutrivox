@@ -11,6 +11,7 @@ public partial class MainWindow
     private readonly LogicEditorWorkflowService _logicWorkflow = new();
     private readonly LogicEditorPresenterService _logicPresenter = new();
     private readonly ProjectSummaryService _projectSummary = new();
+    private readonly LogicProjectService _logicProjectOperations = new();
 
     private void LogicNavigationButton_OnClick(object? sender, RoutedEventArgs e) => ShowLogicEditor();
 
@@ -94,7 +95,7 @@ public partial class MainWindow
         row.Children.Add(new TextBlock { Text = variable.Name, VerticalAlignment = VerticalAlignment.Center });
         row.Children.Add(new TextBlock { Text = variable.DataType.ToString(), Opacity = 0.6, VerticalAlignment = VerticalAlignment.Center });
         var remove = new Button { Content = T("Удалить", "Remove") };
-        remove.Click += (_, _) => { _logicWorkflow.RemoveVariable(_project!.Logic, variable.Id); ShowLogicEditor(); };
+        remove.Click += (_, _) => { _logicProjectOperations.RemoveVariable(_project!.Logic, variable.Id); ShowLogicEditor(); };
         row.Children.Add(remove);
         PageContent.Children.Add(row);
     }
