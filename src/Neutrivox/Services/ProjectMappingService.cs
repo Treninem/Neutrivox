@@ -4,16 +4,18 @@ namespace Neutrivox.Services;
 
 public sealed class ProjectMappingService
 {
-    public MappingResult SuggestMappings(AutomationProject project, IReadOnlyList<DiscoveredDevice> discovered)
+    public ProjectMappingSuggestionsResult SuggestMappings(AutomationProject project, IReadOnlyList<DiscoveredDevice> discovered)
     {
-        var result = new MappingResult();
+        var result = new ProjectMappingSuggestionsResult();
         foreach (var device in project.Devices)
         {
             var matches = discovered.Where(d => !string.IsNullOrWhiteSpace(d.Model) &&
                                                device.Name.Contains(d.Model!, StringComparison.OrdinalIgnoreCase))
                                     .ToList();
-            if (matches.Count == 1) result.Suggestions.Add(new DeviceMappingSuggestion(device.Id, matches[0], MappingConfidence.Possible));
-            else if (matches.Count > 1) result.AmbiguousDevices.Add(device.Id);
+            if (matches.Count == 1)
+                result.Suggestions.Add(new DeviceMappingSuggestion(device.Id, matches[0], MappingConfidence.Possible));
+            else if (matches.Count > 1)
+                result.AmbiguousDevices.Add(device.Id);
         }
         return result;
     }
@@ -33,7 +35,7 @@ public sealed class ProjectMappingService
     public void Unbind(ProjectDevice projectDevice) => projectDevice.PhysicalBinding = null;
 }
 
-public sealed class MappingResult
+public sealed class ProjectMappingSuggestionsResult
 {
     public List<DeviceMappingSuggestion> Suggestions { get; } = [];
     public List<Guid> AmbiguousDevices { get; } = [];
