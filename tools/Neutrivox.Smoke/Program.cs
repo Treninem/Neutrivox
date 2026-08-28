@@ -25,9 +25,15 @@ var simulation = new SimulationSessionService();
 var session = simulation.Create(project);
 simulation.Start(session);
 Assert(simulation.SetChannelValue(session, project, device.Channels[0].Id, true), "Input assignment failed.");
-var run = new SimulationWorkflowService().RunCycle(project, session);
+var workflow = new SimulationWorkflowService();
+var run = workflow.RunCycle(project, session);
 Assert(run.Success, "Simulation workflow failed: " + string.Join("; ", run.Errors));
+Assert(run.ExecutedInstructions == 1, "Unexpected executed instruction count.");
 Assert(session.ChannelValues[device.Channels[1].Id] is true, "Output did not follow input.");
+Assert(run.Trace.Entries.Count > 0, "Simulation trace is empty.");
+
+var traceSummary = new SimulationTraceService().CreateSummary(run.Trace);
+Assert(traceSummary.Contains("errors: 0", StringComparison.OrdinalIgnoreCase), "Unexpected simulation errors in trace summary.");
 
 var persistence = new ProjectPersistenceService();
 var serialized = persistence.Serialize(project);
@@ -35,13 +41,33 @@ var loaded = persistence.Deserialize(serialized);
 Assert(loaded.Success && loaded.Project is not null, "Project round-trip failed.");
 Assert(loaded.Project!.Devices.Count == 1, "Project device count changed after round-trip.");
 
+var integrity = new ProjectIntegrityService().Check(loaded.Project);
+Assert(integrity.IsValid, "Project integrity check failed after round-trip.");
+
+var recovery = new ProjectRecoveryService();
+recovery.Capture(project, "Smoke test");
+project.Name = "Changed after recovery point";
+var restored = recovery.RestoreLatest();
+Assert(restored.Success && restored.Project?.Name == "Smoke Project", "Recovery point restore failed.");
+
+var scenarioCatalog = new SimulationScenarioCatalog();
+Assert(scenarioCatalog.Add(new SimulationScenario("Start ON", "Turn start on", new Dictionary<Guid, object?> { [device.Channels[0].Id] = true }, new Dictionary<Guid, object?>())), "Scenario was not added.");
+Assert(scenarioCatalog.Scenarios.Count == 1, "Scenario catalog count mismatch.");
+
 var endpoint = new EndpointValidationService().ValidateNetworkEndpoint("192.168.1.10:502");
 Assert(endpoint.Valid, "Valid network endpoint was rejected.");
+Assert(new EndpointValidationService().ValidateSerialEndpoint("COM3").Valid, "Valid serial endpoint was rejected.");
+Assert(!new EndpointValidationService().ValidateNetworkEndpoint("not-an-ip:502").Valid, "Invalid network endpoint was accepted.");
 
 var registry = VerifiedOwenCatalogBootstrap.CreateRegistry();
-Assert(registry.TryGet("owen.pr100.24_0804_03_1", out _), "Verified PR100 profile was not registered.");
-Assert(registry.TryGet("owen.pm210", out _), "Verified PM210 profile was not registered.");
+Assert(registry.TryGet("owen.pr100.24_0804_03_1", out var pr100), "Verified PR100 profile was not registered.");
+Assert(pr100!.Transports.Contains(DeviceTransport.SerialRs485), "PR100 RS-485 capability missing.");
+Assert(registry.TryGet("owen.pm210", out var pm210), "Verified PM210 profile was not registered.");
+Assert(pm210!.SupportLevel == DeviceSupportLevel.ModelProfiled, "PM210 support level is incorrect.");
 Assert(registry.TryGet("owen.pe210-230", out _), "Verified PE210 profile was not registered.");
 Assert(registry.TryGet("owen.pv210-24", out _), "Verified PV210 profile was not registered.");
+
+var compatibility = new DeviceCompatibilityService().Check(device, pr100!);
+Assert(!compatibility.Compatible, "Unrelated smoke device was incorrectly accepted as PR100.");
 
 Console.WriteLine("Neutrivox smoke checks passed.");
