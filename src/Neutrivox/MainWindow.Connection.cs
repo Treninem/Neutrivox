@@ -64,6 +64,13 @@ public partial class MainWindow
         refresh.Click += (_, _) => ShowConnectionCenter();
         panel.Children.Add(refresh);
 
+        if (_project is not null && _project.Devices.Any(x => x.PhysicalBinding is not null))
+        {
+            var deployment = new Button { Content = T("Подготовить план передачи", "Prepare deployment plan"), Margin = new Avalonia.Thickness(0, 4, 0, 0) };
+            deployment.Click += (_, _) => ShowDeploymentPreview();
+            panel.Children.Add(deployment);
+        }
+
         panel.Children.Add(new Separator { Margin = new Avalonia.Thickness(0, 8) });
         panel.Children.Add(new TextBlock { Text = T("Результат обнаружения", "Discovery result"), FontSize = 18, FontWeight = Avalonia.Media.FontWeight.SemiBold });
 
