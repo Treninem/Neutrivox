@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Neutrivox.Models;
 using Neutrivox.Services;
 
@@ -70,4 +71,30 @@ Assert(registry.TryGet("owen.pv210-24", out _), "Verified PV210 profile was not 
 var compatibility = new DeviceCompatibilityService().Check(device, pr100!);
 Assert(!compatibility.Compatible, "Unrelated smoke device was incorrectly accepted as PR100.");
 
+var plans = new CommercialPlanCatalogService();
+Assert(plans.Find("free")?.PriceRub == 0m, "Free plan price is not zero RUB.");
+Assert(plans.Find("owner-lifetime")?.Edition == ProductEdition.Owner, "Owner lifetime plan is missing.");
+Assert(plans.GetPublicPlans().All(x => x.Edition != ProductEdition.Owner), "Owner plan must not be publicly sellable.");
+
+var verifier = new SmokeLicenseVerifier();
+var licenseService = new LicenseActivationService(plans, verifier);
+var licensePayload = new LicenseKeyPayload(
+    "smoke-key",
+    "professional-30d",
+    "smoke-test",
+    "machine-A",
+    DateTimeOffset.UtcNow,
+    DateTimeOffset.UtcNow.AddDays(30),
+    "SMOKE");
+var licenseJson = JsonSerializer.Serialize(licensePayload);
+var activation = licenseService.Activate(new LicenseActivationRequest(licenseJson, "machine-A"), DateTimeOffset.UtcNow);
+Assert(activation.Success && activation.Edition == ProductEdition.Professional, "Bound professional license activation failed.");
+var wrongMachine = licenseService.Activate(new LicenseActivationRequest(licenseJson, "machine-B"), DateTimeOffset.UtcNow);
+Assert(!wrongMachine.Success, "A device-bound license was accepted on another machine.");
+
 Console.WriteLine("Neutrivox smoke checks passed.");
+
+sealed class SmokeLicenseVerifier : ILicenseSignatureVerifier
+{
+    public bool Verify(LicenseKeyPayload payload) => payload.Signature == "SMOKE";
+}
