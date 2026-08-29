@@ -5,6 +5,8 @@ namespace Neutrivox.Services;
 /// <summary>Centralizes human-readable simulation tracing without coupling tracing to the UI.</summary>
 public sealed class SimulationTraceService
 {
+    public SimulationTrace Create() => new();
+
     public void RecordCycleStart(SimulationTrace trace, int cycle)
     {
         trace.Cycle = cycle;
