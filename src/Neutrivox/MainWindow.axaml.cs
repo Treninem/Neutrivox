@@ -151,7 +151,7 @@ public partial class MainWindow : Window
         {
             var pair = (_project.Devices[i].Id, _project.Devices[j].Id);
             if (existing.Contains(pair)) continue;
-            _connections.AddConnection(_project, pair.Item1, pair.Item2, "Project link");
+            _connections.AddConnection(_project, pair.Item1, pair.Item2, "Project link", out _);
             ShowWorkspace(); return;
         }
     }
@@ -187,16 +187,13 @@ public partial class MainWindow : Window
         SetHeader(T("Проверка проекта", "Project validation"), T("Базовая проверка конфигурации перед дальнейшей работой.", "Basic configuration validation before further work.")); PageContent.Children.Clear();
         if (_project is null) { PageContent.Children.Add(new TextBlock { Text = T("Проект ещё не создан.", "No project has been created yet.") }); return; }
         if (_project.Devices.Count == 0) PageContent.Children.Add(new TextBlock { Text = "⚠ " + T("В проект не добавлено оборудование.", "No equipment has been added to the project.") });
-        else PageContent.Children.Add(new TextBlock { Text = "✓ " + T("Базовая структура проекта корректна. Следующие проверки будут расширяться вместе с редактором.", "The basic project structure is valid. Further checks will grow with the editor.") });
+        else PageContent.Children.Add(new TextBlock { Text = "✓ " + T("Базовая структура проекта корректна. Следующие проверки будут расширяться вместе с редактором.", "The basic project structure is valid. Further checks will grow with the editor."), Opacity = 0.85 });
     }
 
     private void ShowPlaceholder(string title, string description) { SetHeader(title, description); PageContent.Children.Clear(); PageContent.Children.Add(new TextBlock { Text = T("Раздел находится в активной разработке.", "This section is under active development."), Opacity = 0.65 }); }
     private void AddAction(string title, string description, EventHandler<RoutedEventArgs> action) { var button = new Button { HorizontalContentAlignment = HorizontalAlignment.Stretch, Margin = new Avalonia.Thickness(0, 4) }; var panel = new StackPanel { Spacing = 4, Margin = new Avalonia.Thickness(10) }; panel.Children.Add(new TextBlock { Text = title, FontSize = 18, FontWeight = Avalonia.Media.FontWeight.SemiBold }); panel.Children.Add(new TextBlock { Text = description, Opacity = 0.65, TextWrapping = Avalonia.Media.TextWrapping.Wrap }); button.Content = panel; button.Click += action; PageContent.Children.Add(button); }
     private void SetHeader(string title, string description) { PageTitle.Text = title; PageDescription.Text = description; }
     private string T(string ru, string en) => _english ? en : ru;
-    private void UpdateProjectPanel() { ProjectNameText.Text = _project?.Name ?? T("Проект не создан", "No project created"); DeviceCountText.Text = T($"Оборудование: {_project?.Devices.Count ?? 0}", $"Equipment: {_project?.Devices.Count ?? 0}"); }
-    private void LanguageButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        _english = !_english; LanguageButton.Content = _english ? "EN" : "RU"; SubtitleText.Text = T("Среда промышленной автоматизации", "Industrial automation environment"); NewProjectButton.Content = T("Новый проект", "New project"); NavigationTitle.Text = T("Навигация", "Navigation"); ProjectsNav.Content = T("📁  Проекты", "📁  Projects"); DevicesNav.Content = T("▣  Оборудование", "▣  Equipment"); SchemeNav.Content = T("⌁  Схема", "⌁  Workspace"); InputsNav.Content = T("⇄  Входы и выходы", "⇄  Inputs and outputs"); CheckNav.Content = T("✓  Проверка", "✓  Validation"); SettingsNav.Content = T("⚙  Настройки", "⚙  Settings"); ProjectPanelTitle.Text = T("Текущий проект", "Current project"); QuickStartTitle.Text = T("Быстрый старт", "Quick start"); QuickStartText.Text = T("1. Создайте проект\n2. Добавьте оборудование\n3. Настройте входы и выходы\n4. Откройте рабочее пространство", "1. Create a project\n2. Add equipment\n3. Configure I/O\n4. Open workspace"); UpdateProjectPanel(); ShowPage("Scheme");
-    }
+    private void UpdateProjectPanel() { ProjectNameText.Text = _project?.Name ?? T("Проект не открыт", "No project"); ProjectStatusText.Text = _project is null ? T("Нет проекта", "No project") : T($"Устройств: {_project.Devices.Count}", $"Devices: {_project.Devices.Count}"); }
+    private void LanguageButton_OnClick(object? sender, RoutedEventArgs e) { _english = !_english; ShowPage("Projects"); }
 }
