@@ -11,7 +11,7 @@ public sealed class ProjectBindingService
         if (string.IsNullOrWhiteSpace(physicalDevice.Endpoint))
             return new(false, "The discovered device has no usable endpoint.");
 
-        projectDevice.PhysicalBinding = new PhysicalDeviceBinding
+        projectDevice.PhysicalBinding = new Models.PhysicalDeviceBinding
         {
             Endpoint = physicalDevice.Endpoint,
             Manufacturer = physicalDevice.Manufacturer,
