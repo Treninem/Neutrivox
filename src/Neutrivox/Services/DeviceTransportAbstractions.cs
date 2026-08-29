@@ -36,15 +36,7 @@ public interface IDeviceTransportFactory
     IDeviceTransport Create(DeviceTransport transport, DeviceProtocolKind protocol);
 }
 
-public sealed class DeviceTransportRegistry
-{
-    private readonly List<IDeviceTransportFactory> _factories = [];
-    public void Register(IDeviceTransportFactory factory) => _factories.Add(factory);
-
-    public bool TryCreate(DeviceTransport transport, DeviceProtocolKind protocol, out IDeviceTransport? client)
-    {
-        var factory = _factories.LastOrDefault(x => x.CanHandle(transport, protocol));
-        client = factory?.Create(transport, protocol);
-        return client is not null;
-    }
-}
+/// <summary>
+/// Compatibility-free connection abstractions. The probe registry lives in
+/// TransportAbstractions.cs; this file intentionally does not declare another registry.
+/// </summary>
