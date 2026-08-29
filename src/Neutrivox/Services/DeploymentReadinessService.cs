@@ -2,46 +2,18 @@ using Neutrivox.Models;
 
 namespace Neutrivox.Services;
 
+/// <summary>
+/// Adds deployment-specific checks to the canonical project readiness model.
+/// There is intentionally no second readiness-report type in Services.
+/// </summary>
 public sealed class DeploymentReadinessService
 {
     private readonly LogicCompilationService _logic = new();
+    private readonly ProjectReadinessService _projectReadiness = new();
 
     public ProjectReadinessReport Analyze(AutomationProject project)
     {
-        var report = new ProjectReadinessReport();
-
-        if (project.Devices.Count == 0)
-        {
-            report.Items.Add(new(
-                ProjectReadinessLevel.Blocking,
-                "NO_DEVICES",
-                "Нет оборудования",
-                "В проекте нет устройств.",
-                "Добавьте поддерживаемое устройство или модуль."));
-        }
-
-        foreach (var device in project.Devices)
-        {
-            if (string.IsNullOrWhiteSpace(device.Name))
-            {
-                report.Items.Add(new(
-                    ProjectReadinessLevel.Warning,
-                    "DEVICE_NO_NAME",
-                    "Устройство без имени",
-                    "Для понятной последовательной загрузки каждому устройству нужно имя.",
-                    "Задайте понятное имя устройства."));
-            }
-
-            if (string.IsNullOrWhiteSpace(device.DefinitionId))
-            {
-                report.Items.Add(new(
-                    ProjectReadinessLevel.Blocking,
-                    "DEVICE_NO_PROFILE",
-                    "Нет профиля устройства",
-                    "Устройство проекта не связано с поддерживаемым профилем.",
-                    "Выберите профиль перед подготовкой передачи."));
-            }
-        }
+        var report = _projectReadiness.Evaluate(project);
 
         var compilation = _logic.Compile(project);
         foreach (var error in compilation.Errors)
@@ -54,14 +26,28 @@ public sealed class DeploymentReadinessService
                 "Исправьте логику и выполните проверку повторно."));
         }
 
-        if (project.Devices.Any(x => x.PhysicalBinding is not null && x.PhysicalBinding.IdentificationState != "Verified"))
+        foreach (var device in project.Devices)
         {
-            report.Items.Add(new(
-                ProjectReadinessLevel.Warning,
-                "DEVICE_UNVERIFIED",
-                "Оборудование не подтверждено",
-                "Обнаруженный или назначенный физический прибор ещё не имеет подтверждённого состояния.",
-                "Проверьте модель и адрес прибора перед передачей."));
+            if (device.PhysicalBinding is null)
+            {
+                report.Items.Add(new(
+                    ProjectReadinessLevel.Warning,
+                    "DEVICE_NOT_BOUND",
+                    "Прибор не привязан",
+                    $"Устройство «{device.Name}» пока существует только как цифровая модель.",
+                    "Для физической передачи выполните обнаружение и сопоставление прибора."));
+                continue;
+            }
+
+            if (!string.Equals(device.PhysicalBinding.IdentificationState, "Verified", StringComparison.OrdinalIgnoreCase))
+            {
+                report.Items.Add(new(
+                    ProjectReadinessLevel.Warning,
+                    "DEVICE_UNVERIFIED",
+                    "Оборудование не подтверждено",
+                    $"Физический прибор «{device.Name}» найден, но его идентификация ещё не подтверждена.",
+                    "Проверьте модель, модификацию и endpoint перед передачей."));
+            }
         }
 
         return report;
