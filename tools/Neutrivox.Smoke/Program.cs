@@ -71,6 +71,44 @@ Assert(registry.TryGet("owen.pv210-24", out _), "Verified PV210 profile was not 
 var compatibility = new DeviceCompatibilityService().Check(device, pr100!);
 Assert(!compatibility.Compatible, "Unrelated smoke device was incorrectly accepted as PR100.");
 
+var preflight = new DeploymentPreflightService();
+var preflightReport = preflight.Check(project, [device.Id]);
+Assert(preflightReport.Checks.Any(x => x.Code == "NOT_MAPPED" && x.Severity == PreflightSeverity.Error), "Unmapped deployment target was not blocked.");
+
+var device2 = new ProjectDevice { DefinitionId = "generic-controller-8io", Name = "Second Controller" };
+device.PhysicalBinding = new PhysicalDeviceBinding
+{
+    Endpoint = "COM3",
+    Manufacturer = "ОВЕН",
+    Model = "ПР100-24.0804.03.1",
+    IdentificationState = "Verified"
+};
+device2.PhysicalBinding = new PhysicalDeviceBinding
+{
+    Endpoint = "192.168.1.20:502",
+    Manufacturer = "Neutrivox Demo",
+    Model = "Controller 8 I/O",
+    IdentificationState = "Verified"
+};
+project.Devices.Add(device2);
+
+var planning = new DeploymentPlanningService();
+var orderedPlan = planning.CreatePreview(project, [device2.Id, device.Id]).Plan;
+Assert(orderedPlan.Targets.Count == 2, "Deployment plan did not preserve two selected targets.");
+Assert(orderedPlan.Targets[0].Order == 1 && orderedPlan.Targets[0].ProjectDeviceId == device2.Id, "First deployment target order is wrong.");
+Assert(orderedPlan.Targets[1].Order == 2 && orderedPlan.Targets[1].ProjectDeviceId == device.Id, "Second deployment target order is wrong.");
+
+var fingerprintService = new DeploymentPlanFingerprintService();
+var forwardFingerprint = fingerprintService.Compute(project, [device2.Id, device.Id]);
+var reverseFingerprint = fingerprintService.Compute(project, [device.Id, device2.Id]);
+Assert(forwardFingerprint != reverseFingerprint, "Deployment fingerprint ignored target order.");
+
+var guardService = new DeploymentPlanGuardService(fingerprintService);
+var snapshot = guardService.Capture(project, [device2.Id, device.Id]);
+device2.Name = "Second Controller renamed";
+var guardResult = guardService.Validate(project, snapshot);
+Assert(!guardResult.IsCurrent, "Stale deployment plan was accepted after project changes.");
+
 var plans = new CommercialPlanCatalogService();
 Assert(plans.Find("free")?.PriceRub == 0m, "Free plan price is not zero RUB.");
 Assert(plans.Find("owner-lifetime")?.Edition == ProductEdition.Owner, "Owner lifetime plan is missing.");
