@@ -22,7 +22,7 @@ public sealed class DeploymentSequenceService
             var message = validOrder
                 ? $"Step {expected}: verify and deploy only to {target.DeviceName} at {target.Endpoint ?? "no endpoint"}."
                 : $"Invalid deployment order: expected {expected}, got {target.Order} for {target.DeviceName}.";
-            return new DeploymentSequenceItem(expected, target, DeploymentState.Pending, message);
+            return new DeploymentSequenceItem(expected, target, DeploymentState.Draft, message);
         }).ToList();
 
         return new DeploymentSequencePlan(items);
