@@ -22,7 +22,7 @@ public sealed class ProjectMappingService
 
     public void Bind(ProjectDevice projectDevice, DiscoveredDevice physicalDevice)
     {
-        projectDevice.PhysicalBinding = new PhysicalDeviceBinding
+        projectDevice.PhysicalBinding = new Models.PhysicalDeviceBinding
         {
             Endpoint = physicalDevice.Endpoint,
             Manufacturer = physicalDevice.Manufacturer,
