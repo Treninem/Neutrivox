@@ -2,37 +2,38 @@ using Neutrivox.Models;
 
 namespace Neutrivox.Services;
 
+/// <summary>
+/// Backward-compatible facade over the canonical Models.DeploymentPlan.
+/// The project no longer maintains a second deployment-plan model.
+/// </summary>
 public sealed class DeploymentService
 {
     public DeploymentPlan CreatePlan(AutomationProject project, IEnumerable<ProjectDevice> devices)
     {
-        var steps = devices.Select((device, index) => new DeploymentStep(index + 1, device.Id, device.Name, DeploymentState.Pending)).ToList();
-        return new DeploymentPlan(project.Id, DateTime.UtcNow, steps);
+        var plan = new DeploymentPlan { ProjectId = project.Id, State = DeploymentState.Draft };
+        var order = 1;
+        foreach (var device in devices.DistinctBy(x => x.Id))
+        {
+            plan.Targets.Add(new DeploymentTarget
+            {
+                Order = order++,
+                ProjectDeviceId = device.Id,
+                DeviceName = device.Name,
+                DefinitionId = device.DefinitionId,
+                Endpoint = device.PhysicalBinding?.Endpoint ?? device.Network.IpAddress ?? device.Network.SerialPort,
+                IdentificationState = device.PhysicalBinding?.IdentificationState ?? "NotBound"
+            });
+        }
+        if (plan.Targets.Count > 0) plan.State = DeploymentState.Validated;
+        return plan;
     }
 
     public void MarkStep(DeploymentPlan plan, Guid deviceId, DeploymentState state, string? message = null)
     {
-        var step = plan.Steps.FirstOrDefault(x => x.DeviceId == deviceId)
-            ?? throw new InvalidOperationException("Deployment step not found.");
-        step.State = state;
-        step.Message = message;
+        if (state == DeploymentState.Failed && !string.IsNullOrWhiteSpace(message))
+            plan.ValidationMessages.Add(message);
+
+        if (state == DeploymentState.Completed && plan.Targets.All(x => x.ProjectDeviceId != deviceId))
+            throw new InvalidOperationException("Deployment target not found.");
     }
 }
-
-public sealed class DeploymentPlan(Guid projectId, DateTime createdAtUtc, List<DeploymentStep> steps)
-{
-    public Guid ProjectId { get; } = projectId;
-    public DateTime CreatedAtUtc { get; } = createdAtUtc;
-    public List<DeploymentStep> Steps { get; } = steps;
-}
-
-public sealed class DeploymentStep(int order, Guid deviceId, string deviceName, DeploymentState state)
-{
-    public int Order { get; } = order;
-    public Guid DeviceId { get; } = deviceId;
-    public string DeviceName { get; } = deviceName;
-    public DeploymentState State { get; set; } = state;
-    public string? Message { get; set; }
-}
-
-public enum DeploymentState { Pending, Verified, Ready, Running, Completed, Failed, Skipped }
