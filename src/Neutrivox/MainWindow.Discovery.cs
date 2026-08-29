@@ -7,7 +7,7 @@ namespace Neutrivox;
 
 public partial class MainWindow
 {
-    private readonly DeviceDiscoveryCoordinator _discoveryCoordinator;
+    private DeviceDiscoveryCoordinator? _discoveryCoordinator;
     private string _discoveryScope = "192.168.1.0/24";
     private IReadOnlyList<DeviceDiscoveryCandidate> _discoveryCandidates = [];
     private bool _discoveryBusy;
@@ -43,6 +43,7 @@ public partial class MainWindow
             ShowDiscovery();
             try
             {
+                if (_discoveryCoordinator is null) return;
                 var result = await _discoveryCoordinator.ScanAsync(_discoveryScope);
                 _discoveryCandidates = result.Candidates;
             }
@@ -54,11 +55,14 @@ public partial class MainWindow
         };
         cancel.Click += (_, _) => { _discoveryCandidates = []; ShowDiscovery(); };
 
-        var controls = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"), ColumnSpacing = 8 };
+        var controls = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto") };
         Grid.SetColumn(scopeLabel, 0); controls.Children.Add(scopeLabel);
         Grid.SetColumn(scope, 1); controls.Children.Add(scope);
         Grid.SetColumn(scan, 2); controls.Children.Add(scan);
         Grid.SetColumn(cancel, 3); controls.Children.Add(cancel);
+        scope.Margin = new Avalonia.Thickness(8, 0);
+        scan.Margin = new Avalonia.Thickness(4, 0);
+        cancel.Margin = new Avalonia.Thickness(4, 0);
         PageContent.Children.Add(controls);
 
         if (_discoveryCandidates.Count == 0)
