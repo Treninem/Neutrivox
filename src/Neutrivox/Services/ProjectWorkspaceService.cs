@@ -7,31 +7,33 @@ public sealed class ProjectWorkspaceService
 {
     private readonly ProjectEquipmentService _equipment;
     private readonly ProjectValidationService _validation;
+    private readonly DeviceCatalogService _catalog;
 
-    public ProjectWorkspaceService(ProjectEquipmentService equipment, ProjectValidationService validation)
+    public ProjectWorkspaceService(ProjectEquipmentService equipment, ProjectValidationService validation, DeviceCatalogService? catalog = null)
     {
         _equipment = equipment;
         _validation = validation;
+        _catalog = catalog ?? new DeviceCatalogService();
     }
 
     public ProjectWorkspaceSnapshot GetSnapshot(AutomationProject project)
     {
-        var validation = _validation.Validate(project);
+        var validation = _validation.Validate(project, _catalog);
         return new ProjectWorkspaceSnapshot(
             project.Id,
             project.Name,
             project.Devices.Count,
             project.Devices.Sum(d => d.Channels.Count),
-            validation.Results.Count(r => r.Level == ValidationLevel.Error),
-            validation.Results.Count(r => r.Level == ValidationLevel.Warning));
+            validation.ErrorCount,
+            validation.WarningCount);
     }
 
     public WorkspaceReadiness GetReadiness(AutomationProject project)
     {
-        var result = _validation.Validate(project);
-        return result.Results.Any(x => x.Level == ValidationLevel.Error)
+        var result = _validation.Validate(project, _catalog);
+        return result.ErrorCount > 0
             ? WorkspaceReadiness.NeedsFixes
-            : result.Results.Any(x => x.Level == ValidationLevel.Warning)
+            : result.WarningCount > 0
                 ? WorkspaceReadiness.ReadyWithWarnings
                 : WorkspaceReadiness.Ready;
     }
