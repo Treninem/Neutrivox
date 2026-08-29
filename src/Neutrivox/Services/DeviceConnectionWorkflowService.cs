@@ -14,10 +14,10 @@ public sealed record DeviceConnectionAttempt(
 /// </summary>
 public sealed class DeviceConnectionWorkflowService
 {
-    private readonly DeviceTransportRegistry _registry;
+    private readonly DeviceTransportFactory _factory;
     private readonly EndpointValidationService _endpointValidation = new();
 
-    public DeviceConnectionWorkflowService(DeviceTransportRegistry registry) => _registry = registry;
+    public DeviceConnectionWorkflowService(DeviceTransportFactory factory) => _factory = factory;
 
     public async Task<DeviceConnectionAttempt> ConnectAndIdentifyAsync(
         DeviceTransport transport,
@@ -32,7 +32,8 @@ public sealed class DeviceConnectionWorkflowService
         if (!validation.Valid)
             return new(false, endpoint, validation.Error ?? "Invalid endpoint.");
 
-        if (!_registry.TryCreate(transport, protocol, out var client) || client is null)
+        var client = _factory.Create(transport, protocol);
+        if (client is null)
             return new(false, validation.Normalized, $"No registered adapter supports {transport}/{protocol}.");
 
         await using (client)
