@@ -21,7 +21,7 @@ public sealed class SimulationUiWorkflowService
 
     public SimulationUiState Build(AutomationProject project, SimulationSession session)
     {
-        var validation = _validation.Validate(project);
+        var validation = _validation.ValidateForSimulation(project);
         var values = _values.GetValues(project, session);
         return new(
             validation.IsReadyForSimulation,
@@ -34,10 +34,7 @@ public sealed class SimulationUiWorkflowService
     }
 
     public SimulationWorkflowResult RunCycle(AutomationProject project, SimulationSession session)
-    {
-        var result = _workflow.RunCycle(project, session, _trace);
-        return result;
-    }
+        => _workflow.RunCycle(project, session, _trace);
 
     public void ClearTrace() => _trace.Clear();
 }
