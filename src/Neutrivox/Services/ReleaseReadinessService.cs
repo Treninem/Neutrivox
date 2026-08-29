@@ -35,7 +35,7 @@ public sealed class ReleaseReadinessService
             var integration = _integration.BuildSnapshot(project);
             var integrity = _integrity.Check(project);
             var roundTrip = CanRoundTrip(project);
-            var simulationReady = integration.Readiness.IsReadyForSimulation;
+            var simulationReady = integration.Readiness.CanSimulate;
             var blockingDiagnostics = integration.Diagnostics.Any(x => x.Severity == DiagnosticSeverity.Error);
 
             checks.Add(new(
