@@ -23,28 +23,31 @@ public sealed class DeploymentPreflightService
     {
         var checks = new List<PreflightCheck>();
         var ids = selectedDeviceIds.Distinct().ToList();
-
         var validation = _validation.Validate(project, _catalog);
+
         foreach (var issue in validation.Issues)
         {
-            var severity = issue.Severity == ValidationSeverity.Error
+            var severity = issue.Severity == Models.ValidationSeverity.Error
                 ? PreflightSeverity.Error
-                : PreflightSeverity.Warning;
+                : issue.Severity == Models.ValidationSeverity.Warning
+                    ? PreflightSeverity.Warning
+                    : PreflightSeverity.Info;
             checks.Add(new PreflightCheck(severity, issue.Code, issue.Message));
         }
 
         if (ids.Count == 0)
             checks.Add(new PreflightCheck(PreflightSeverity.Error, "NO_TARGETS", "At least one deployment target must be selected."));
 
-        foreach (var deviceId in ids)
+        for (var index = 0; index < ids.Count; index++)
         {
+            var deviceId = ids[index];
             var device = project.Devices.FirstOrDefault(x => x.Id == deviceId);
             if (device is null)
             {
                 checks.Add(new PreflightCheck(
                     PreflightSeverity.Error,
                     "UNKNOWN_PROJECT_DEVICE",
-                    "A selected device is not part of the current project."));
+                    $"Target #{index + 1}: selected device is not part of the current project."));
                 continue;
             }
 
@@ -53,14 +56,14 @@ public sealed class DeploymentPreflightService
                 checks.Add(new PreflightCheck(
                     PreflightSeverity.Error,
                     "MISSING_DEFINITION",
-                    $"{device.Name}: device definition is not specified."));
+                    $"Target #{index + 1} {device.Name}: device definition is not specified."));
             }
             else if (_catalog.Find(device.DefinitionId) is null)
             {
                 checks.Add(new PreflightCheck(
                     PreflightSeverity.Error,
                     "UNKNOWN_DEVICE",
-                    $"{device.Name}: unknown device definition '{device.DefinitionId}'."));
+                    $"Target #{index + 1} {device.Name}: unknown device definition '{device.DefinitionId}'."));
             }
 
             var binding = device.PhysicalBinding;
@@ -69,20 +72,20 @@ public sealed class DeploymentPreflightService
                 checks.Add(new PreflightCheck(
                     PreflightSeverity.Error,
                     "NOT_MAPPED",
-                    $"{device.Name} is not mapped to a physical device."));
+                    $"Target #{index + 1} {device.Name} is not mapped to a physical device."));
                 continue;
             }
 
             if (string.IsNullOrWhiteSpace(binding.Endpoint))
-                checks.Add(new PreflightCheck(PreflightSeverity.Error, "EMPTY_ENDPOINT", $"{device.Name}: physical endpoint is empty."));
+                checks.Add(new PreflightCheck(PreflightSeverity.Error, "EMPTY_ENDPOINT", $"Target #{index + 1} {device.Name}: physical endpoint is empty."));
 
             if (string.IsNullOrWhiteSpace(binding.Manufacturer) || string.IsNullOrWhiteSpace(binding.Model))
-                checks.Add(new PreflightCheck(PreflightSeverity.Warning, "INCOMPLETE_IDENTIFICATION", $"{device.Name}: manufacturer/model identification is incomplete."));
+                checks.Add(new PreflightCheck(PreflightSeverity.Warning, "INCOMPLETE_IDENTIFICATION", $"Target #{index + 1} {device.Name}: manufacturer/model identification is incomplete."));
 
             checks.Add(new PreflightCheck(
                 PreflightSeverity.Info,
                 "TARGET",
-                $"{device.Name} → {binding.Endpoint} ({binding.Manufacturer ?? "?"} / {binding.Model ?? "?"}), identification={binding.IdentificationState}"));
+                $"Target #{index + 1}: {device.Name} → {binding.Endpoint} ({binding.Manufacturer ?? "?"} / {binding.Model ?? "?"}), identification={binding.IdentificationState}"));
         }
 
         if (!checks.Any(x => x.Severity == PreflightSeverity.Error))
