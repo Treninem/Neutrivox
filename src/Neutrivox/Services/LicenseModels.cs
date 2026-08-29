@@ -1,11 +1,6 @@
-namespace Neutrivox.Services;
+using Neutrivox.Models;
 
-public enum LicenseTier
-{
-    Free,
-    Professional,
-    OwnerPerpetual
-}
+namespace Neutrivox.Services;
 
 public sealed record LicenseEntitlements(
     bool BasicProject,
@@ -16,9 +11,13 @@ public sealed record LicenseEntitlements(
     bool PhysicalDeviceIntegration,
     bool SequentialDeployment);
 
-public sealed record LicenseState(
-    LicenseTier Tier,
+/// <summary>
+/// Compatibility model for the policy service. Product edition/state are defined once
+/// in Neutrivox.Models.Licensing and are intentionally reused here.
+/// </summary>
+public sealed record LegacyLicensePolicy(
+    ProductEdition Edition,
     string LicenseId,
-    DateTime? ExpiresAtUtc,
+    DateTimeOffset? ExpiresAtUtc,
     bool Activated,
     string Source);
