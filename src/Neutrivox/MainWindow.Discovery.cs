@@ -8,7 +8,6 @@ namespace Neutrivox;
 public partial class MainWindow
 {
     private readonly DeviceDiscoveryCoordinator _discoveryCoordinator;
-    private readonly DeviceBindingWorkflowService _bindingWorkflow;
     private string _discoveryScope = "192.168.1.0/24";
     private IReadOnlyList<DeviceDiscoveryCandidate> _discoveryCandidates = [];
     private bool _discoveryBusy;
@@ -19,7 +18,7 @@ public partial class MainWindow
         var profiles = VerifiedOwenCatalogBootstrap.CreateRegistry();
         var workflow = new DeviceDiscoveryWorkflowService(discovery);
         _discoveryCoordinator = new DeviceDiscoveryCoordinator(workflow, profiles);
-        _bindingWorkflow = new DeviceBindingWorkflowService(profiles);
+        _bindingWorkflow ??= new DeviceBindingWorkflowService(profiles);
     }
 
     private async void ShowDiscovery()
@@ -87,9 +86,7 @@ public partial class MainWindow
             panel.Children.Add(new TextBlock { Text = candidate.Message, TextWrapping = Avalonia.Media.TextWrapping.Wrap });
 
             foreach (var match in candidate.ProfileMatches.Take(3))
-            {
                 panel.Children.Add(new TextBlock { Text = T($"Профиль: {match.Profile.Manufacturer} {match.Profile.ModelFamily} • совпадение {match.Confidence:P0}", $"Profile: {match.Profile.Manufacturer} {match.Profile.ModelFamily} • match {match.Confidence:P0}"), Opacity = 0.75 });
-            }
 
             var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Avalonia.Thickness(0, 5, 0, 0) };
             if (_project is not null && candidate.CanBind)
@@ -106,7 +103,7 @@ public partial class MainWindow
 
     private void BindCandidate(DeviceDiscoveryCandidate candidate)
     {
-        if (_project is null || _workspace.Selection.DeviceId is not Guid selectedId) return;
+        if (_project is null || _workspace.Selection.DeviceId is not Guid selectedId || _bindingWorkflow is null) return;
         var projectDevice = _project.Devices.FirstOrDefault(x => x.Id == selectedId);
         if (projectDevice is null) return;
         var candidateBinding = _bindingWorkflow.BuildCandidates(projectDevice, [candidate.Device]).FirstOrDefault();
