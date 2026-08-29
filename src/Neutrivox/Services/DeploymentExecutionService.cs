@@ -18,42 +18,83 @@ public sealed record DeploymentExecutionResult(
 
 /// <summary>
 /// Executes a prepared deployment sequence strictly in the explicit plan order.
-/// The service does not discover devices and never treats a profile as writable by itself.
+/// The plan must still match the current project immediately before physical I/O starts.
 /// </summary>
 public sealed class DeploymentExecutionService
 {
     private readonly DeploymentAdapterRegistry _adapters;
+    private readonly DeploymentPlanGuardService _guard;
+    private readonly DeploymentSafetyGateService _safetyGate;
 
-    public DeploymentExecutionService(DeploymentAdapterRegistry adapters) => _adapters = adapters;
+    public DeploymentExecutionService(
+        DeploymentAdapterRegistry adapters,
+        DeploymentPlanGuardService guard,
+        DeploymentSafetyGateService safetyGate)
+    {
+        _adapters = adapters;
+        _guard = guard;
+        _safetyGate = safetyGate;
+    }
 
     public async Task<DeploymentExecutionResult> ExecuteAsync(
         AutomationProject project,
         DeploymentPlan plan,
         Func<Guid, DeploymentContext?> contextFactory,
+        string confirmedByUser,
         Func<int, DeploymentExecutionItem, Task>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var results = new List<DeploymentExecutionItem>();
         var orderedTargets = plan.Targets
             .OrderBy(x => x.Order)
             .ThenBy(x => x.ProjectDeviceId)
             .ToList();
 
-        var expectedOrder = 1;
+        if (orderedTargets.Count == 0)
+            return new(false, false, [], "Deployment plan contains no targets.");
+
+        var expectedOrders = Enumerable.Range(1, orderedTargets.Count).ToArray();
+        if (!orderedTargets.Select(x => x.Order).SequenceEqual(expectedOrders))
+            return new(false, false, [], "Deployment plan order is invalid. Targets must be numbered consecutively from 1.");
+
+        if (plan.ProjectId != project.Id)
+            return new(false, false, [], "Deployment plan belongs to a different project.");
+
+        if (string.IsNullOrWhiteSpace(plan.PlanFingerprint))
+            return new(false, false, [], "Deployment plan has no integrity fingerprint. Prepare the plan again.");
+
+        var snapshot = new DeploymentPlanSnapshot(plan.PlanFingerprint, plan.CreatedAtUtc, orderedTargets.Select(x => x.ProjectDeviceId).ToList());
+        var guardResult = _guard.Validate(project, snapshot);
+        if (!guardResult.IsCurrent)
+            return new(false, false, [], guardResult.MessageEn + " " + string.Join(" ", guardResult.Errors));
+
+        var selectedIds = orderedTargets.Select(x => x.ProjectDeviceId).ToList();
+        var safety = _safetyGate.Evaluate(project, selectedIds, explicitConfirmation: true);
+        if (!safety.Allowed)
+            return new(false, false, [], "Deployment blocked: " + string.Join(" ", safety.Errors));
+
+        plan.State = DeploymentState.Confirmed;
+        plan.ConfirmedByUser = confirmedByUser;
+        plan.ConfirmedAtUtc = DateTime.UtcNow;
+
+        var results = new List<DeploymentExecutionItem>();
         foreach (var target in orderedTargets)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (target.Order != expectedOrder)
+
+            // Re-check the fingerprint before every physical target, so changing the project
+            // during a multi-device run cannot silently cause a stale target to be written.
+            var currentGuard = _guard.Validate(project, snapshot);
+            if (!currentGuard.IsCurrent)
             {
-                var invalid = new DeploymentExecutionItem(
+                var blocked = new DeploymentExecutionItem(
                     target.Order,
                     target.ProjectDeviceId,
                     target.DeviceName,
                     DeploymentState.Failed,
-                    $"Invalid deployment order. Expected {expectedOrder}, got {target.Order}.",
+                    currentGuard.MessageEn,
                     []);
-                results.Add(invalid);
-                if (progress is not null) await progress(target.Order, invalid);
+                results.Add(blocked);
+                if (progress is not null) await progress(target.Order, blocked);
                 break;
             }
 
@@ -86,15 +127,20 @@ public sealed class DeploymentExecutionService
             var steps = await adapter.ExecuteAsync(context, cancellationToken);
             var success = steps.Count > 0 && steps.All(x => x.Success);
             var state = success ? DeploymentState.Completed : DeploymentState.Failed;
-            var message = success ? $"Device deployment completed for target #{target.Order}." : $"Device deployment failed for target #{target.Order}.";
+            var message = success
+                ? $"Device deployment completed for target #{target.Order}."
+                : $"Device deployment failed for target #{target.Order}.";
             var item = new DeploymentExecutionItem(target.Order, target.ProjectDeviceId, target.DeviceName, state, message, steps);
             results.Add(item);
             if (progress is not null) await progress(target.Order, item);
             if (!success) break;
-            expectedOrder++;
         }
 
-        var overall = orderedTargets.Count > 0 && orderedTargets.Count == results.Count && results.All(x => x.State == DeploymentState.Completed);
-        return new(overall, false, results, overall ? "All deployment targets completed successfully in the planned order." : "Deployment completed with a failure or stopped target.");
+        var overall = orderedTargets.Count == results.Count && results.All(x => x.State == DeploymentState.Completed);
+        if (overall) plan.State = DeploymentState.Completed;
+        return new(overall, false, results,
+            overall
+                ? "All deployment targets completed successfully in the planned order."
+                : "Deployment completed with a failure or stopped target.");
     }
 }
