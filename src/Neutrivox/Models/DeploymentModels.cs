@@ -13,6 +13,7 @@ public enum DeploymentState
 
 public sealed class DeploymentTarget
 {
+    public int Order { get; init; }
     public Guid ProjectDeviceId { get; init; }
     public string DeviceName { get; init; } = string.Empty;
     public string DefinitionId { get; init; } = string.Empty;
@@ -28,6 +29,7 @@ public sealed class DeploymentPlan
     public DeploymentState State { get; set; } = DeploymentState.Draft;
     public List<DeploymentTarget> Targets { get; } = [];
     public List<string> ValidationMessages { get; } = [];
+    public string? PlanFingerprint { get; set; }
     public string? ConfirmedByUser { get; set; }
     public DateTime? ConfirmedAtUtc { get; set; }
 }
