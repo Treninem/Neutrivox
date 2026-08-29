@@ -3,9 +3,9 @@ using Neutrivox.Models;
 namespace Neutrivox.Services;
 
 public sealed record ProjectWorkflowSnapshot(
-    ProjectSummary Summary,
-    ProjectReadinessResult Readiness,
-    ProjectDiagnosticsReport Diagnostics,
+    string Summary,
+    ProjectReadinessReport Readiness,
+    IReadOnlyList<ProjectDiagnostic> Diagnostics,
     LogicEditorViewModel Logic,
     string TextReport);
 
@@ -19,9 +19,9 @@ public sealed class ProjectWorkflowFacade
     private readonly ProjectReportService _report = new();
 
     public ProjectWorkflowSnapshot BuildSnapshot(AutomationProject project) => new(
-        _summary.Create(project),
-        _readiness.Assess(project),
-        _diagnostics.Diagnose(project),
+        _summary.CreateHumanReadableSummary(project),
+        _readiness.Evaluate(project),
+        _diagnostics.Analyze(project),
         _logic.Build(project),
         _report.CreateTextReport(project));
 }
