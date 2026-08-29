@@ -71,12 +71,12 @@ public partial class MainWindow
             }
 
         PageContent.Children.Add(new TextBlock { Text = T("Журнал симуляции", "Simulation trace"), FontSize = 18, FontWeight = Avalonia.Media.FontWeight.SemiBold, Margin = new Avalonia.Thickness(0, 10, 0, 4) });
-        var entries = _simulationLog?.Recent(100) ?? [];
+        var entries = _simulationLog?.Entries.TakeLast(100).ToList() ?? [];
         if (entries.Count == 0)
             PageContent.Children.Add(new TextBlock { Text = T("Событий пока нет.", "No trace events yet."), Opacity = 0.65 });
         else
             foreach (var entry in entries)
-                PageContent.Children.Add(new TextBlock { Text = $"{entry.TimestampUtc.ToLocalTime():HH:mm:ss} [{entry.Level}] {entry.Source}: {entry.Message}", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+                PageContent.Children.Add(new TextBlock { Text = $"{entry.TimestampUtc.ToLocalTime():HH:mm:ss} [{entry.Category}] {entry.Message}", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
     }
 
     private void EnsureSimulationSession()
@@ -84,7 +84,7 @@ public partial class MainWindow
         if (_simulationSession?.ProjectId == _project!.Id) return;
         _simulationSession = _simulationSessions.Create(_project);
         _simulationLog = _simulationTrace.Create();
-        _simulationTrace.RecordValidation(_simulationLog, new ProjectValidationWorkflowService().Validate(_project));
+        _simulationTrace.RecordValidation(_simulationLog, new ProjectValidationWorkflowService().ValidateForSimulation(_project));
     }
 
     private void AddVirtualInput(ProjectDevice device, IoChannel channel)
