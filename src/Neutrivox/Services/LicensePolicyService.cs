@@ -1,21 +1,30 @@
+using Neutrivox.Models;
+
 namespace Neutrivox.Services;
 
 public sealed class LicensePolicyService
 {
-    public LicenseEntitlements GetEntitlements(LicenseTier tier) => tier switch
+    public LicenseEntitlements GetEntitlements(ProductEdition edition) => edition switch
     {
-        LicenseTier.Free => new(true, true, true, true, true, false, false),
-        LicenseTier.Professional => new(true, true, true, true, true, true, true),
-        LicenseTier.OwnerPerpetual => new(true, true, true, true, true, true, true),
+        ProductEdition.Free => new(true, true, true, true, false, false, false),
+        ProductEdition.Standard => new(true, true, true, true, true, false, false),
+        ProductEdition.Professional => new(true, true, true, true, true, true, true),
+        ProductEdition.Business => new(true, true, true, true, true, true, true),
+        ProductEdition.Owner => new(true, true, true, true, true, true, true),
         _ => new(true, false, false, false, false, false, false)
     };
 
-    public bool IsActive(LicenseState state, DateTime utcNow) =>
-        state.Activated && (state.ExpiresAtUtc is null || state.ExpiresAtUtc > utcNow);
+    public bool IsActive(LicenseState state, DateTimeOffset? expiresAtUtc, DateTimeOffset utcNow)
+        => (state is LicenseState.Trial or LicenseState.Active)
+           && (expiresAtUtc is null || expiresAtUtc > utcNow);
 
-    public bool CanUse(LicenseState state, DateTime utcNow, Func<LicenseEntitlements, bool> requirement)
+    public bool CanUse(
+        LicenseSnapshot snapshot,
+        DateTimeOffset utcNow,
+        Func<LicenseEntitlements, bool> requirement)
     {
-        if (!IsActive(state, utcNow)) return false;
-        return requirement(GetEntitlements(state.Tier));
+        if (!snapshot.IsUsable || (snapshot.ExpiresAtUtc is not null && snapshot.ExpiresAtUtc <= utcNow))
+            return false;
+        return requirement(GetEntitlements(snapshot.Edition));
     }
 }
