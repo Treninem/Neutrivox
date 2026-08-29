@@ -32,30 +32,35 @@ public sealed class ReleaseReadinessService
 
         if (project is not null)
         {
-            var integration = _integration.Build(project);
+            var integration = _integration.BuildSnapshot(project);
+            var integrity = _integrity.Check(project);
+            var roundTrip = CanRoundTrip(project);
+            var simulationReady = integration.Readiness.IsReadyForSimulation;
+            var blockingDiagnostics = integration.Diagnostics.Any(x => x.Severity == DiagnosticSeverity.Error);
+
             checks.Add(new(
                 "PROJECT_INTEGRITY",
-                _integrity.Check(project).IsValid,
-                _integrity.Check(project).IsValid ? "Базовая целостность проекта подтверждена." : "В проекте найдены критические нарушения структуры.",
-                _integrity.Check(project).IsValid ? "Basic project integrity is valid." : "Critical structural issues were found in the project."));
+                integrity.IsValid,
+                integrity.IsValid ? "Базовая целостность проекта подтверждена." : "В проекте найдены критические нарушения структуры.",
+                integrity.IsValid ? "Basic project integrity is valid." : "Critical structural issues were found in the project."));
 
             checks.Add(new(
                 "PERSISTENCE_ROUNDTRIP",
-                CanRoundTrip(project),
-                CanRoundTrip(project) ? "Проект проходит локальный round-trip сохранение/загрузка." : "Round-trip сохранения/загрузки не пройден.",
-                CanRoundTrip(project) ? "Project passes local save/load round-trip." : "Project save/load round-trip failed."));
+                roundTrip,
+                roundTrip ? "Проект проходит локальный round-trip сохранение/загрузка." : "Round-trip сохранения/загрузки не пройден.",
+                roundTrip ? "Project passes local save/load round-trip." : "Project save/load round-trip failed."));
 
             checks.Add(new(
                 "SIMULATION_STRUCTURE",
-                integration.CanSimulate,
-                integration.CanSimulate ? "Проект допускает симуляцию." : "Проект пока не готов к симуляции.",
-                integration.CanSimulate ? "Project is ready for simulation." : "Project is not ready for simulation."));
+                simulationReady,
+                simulationReady ? "Проект допускает симуляцию." : "Проект пока не готов к симуляции.",
+                simulationReady ? "Project is ready for simulation." : "Project is not ready for simulation."));
 
             checks.Add(new(
                 "BLOCKING_DIAGNOSTICS",
-                !integration.HasBlockingDiagnostics,
-                integration.HasBlockingDiagnostics ? "Есть блокирующие ошибки диагностики." : "Блокирующих ошибок диагностики нет.",
-                integration.HasBlockingDiagnostics ? "Blocking diagnostics are present." : "No blocking diagnostics are present."));
+                !blockingDiagnostics,
+                blockingDiagnostics ? "Есть блокирующие ошибки диагностики." : "Блокирующих ошибок диагностики нет.",
+                blockingDiagnostics ? "Blocking diagnostics are present." : "No blocking diagnostics are present."));
         }
 
         var ready = checks.All(x => x.Passed);
