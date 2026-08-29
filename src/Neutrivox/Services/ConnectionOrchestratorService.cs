@@ -9,14 +9,14 @@ public sealed record ConnectionAttemptResult(
     string Message);
 
 /// <summary>
-/// Selects one registered transport adapter and performs a read-only probe.
+/// Selects one registered read-only probe adapter and checks a physical endpoint.
 /// It never writes configuration to the physical device.
 /// </summary>
 public sealed class ConnectionOrchestratorService
 {
-    private readonly DeviceTransportRegistry _registry;
+    private readonly ProbeTransportRegistry _registry;
 
-    public ConnectionOrchestratorService(DeviceTransportRegistry registry) => _registry = registry;
+    public ConnectionOrchestratorService(ProbeTransportRegistry registry) => _registry = registry;
 
     public async Task<ConnectionAttemptResult> ProbeAsync(ConnectionEndpoint endpoint, CancellationToken cancellationToken = default)
     {
