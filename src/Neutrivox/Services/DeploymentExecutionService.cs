@@ -81,8 +81,6 @@ public sealed class DeploymentExecutionService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Re-check the fingerprint before every physical target, so changing the project
-            // during a multi-device run cannot silently cause a stale target to be written.
             var currentGuard = _guard.Validate(project, snapshot);
             if (!currentGuard.IsCurrent)
             {
@@ -118,7 +116,13 @@ public sealed class DeploymentExecutionService
             var adapter = _adapters.Find(context.Profile);
             if (adapter is null)
             {
-                var unsupported = new DeploymentExecutionItem(target.Order, target.ProjectDeviceId, target.DeviceName, DeploymentState.Skipped, "No tested deployment adapter is registered for this device profile.", []);
+                var unsupported = new DeploymentExecutionItem(
+                    target.Order,
+                    target.ProjectDeviceId,
+                    target.DeviceName,
+                    DeploymentState.Failed,
+                    "No tested deployment adapter is registered for this device profile.",
+                    []);
                 results.Add(unsupported);
                 if (progress is not null) await progress(target.Order, unsupported);
                 break;
