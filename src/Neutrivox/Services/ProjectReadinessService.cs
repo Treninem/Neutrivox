@@ -2,35 +2,77 @@ using Neutrivox.Models;
 
 namespace Neutrivox.Services;
 
+/// <summary>
+/// Produces the canonical project readiness report used by the whole application.
+/// It intentionally returns Neutrivox.Models.ProjectReadinessReport so readiness is not duplicated
+/// in the Services namespace.
+/// </summary>
 public sealed class ProjectReadinessService
 {
     public ProjectReadinessReport Evaluate(AutomationProject project)
     {
-        var checks = new List<ReadinessCheck>();
-        checks.Add(project.Devices.Count > 0
-            ? ReadinessCheck.Pass("equipment", "Equipment has been added")
-            : ReadinessCheck.Fail("equipment", "Add at least one device"));
+        var report = new ProjectReadinessReport();
+
+        if (project.Devices.Count == 0)
+        {
+            report.Items.Add(new(
+                ProjectReadinessLevel.Blocking,
+                "NO_DEVICES",
+                "Нет оборудования",
+                "В проекте нет устройств.",
+                "Добавьте хотя бы одно поддерживаемое устройство."));
+        }
+        else
+        {
+            foreach (var device in project.Devices)
+            {
+                if (string.IsNullOrWhiteSpace(device.Name))
+                {
+                    report.Items.Add(new(
+                        ProjectReadinessLevel.Warning,
+                        "DEVICE_NO_NAME",
+                        "Устройство без имени",
+                        "Для понятной идентификации в проекте и при последовательной передаче устройству требуется имя.",
+                        "Задайте понятное имя устройства."));
+                }
+
+                if (string.IsNullOrWhiteSpace(device.DefinitionId))
+                {
+                    report.Items.Add(new(
+                        ProjectReadinessLevel.Blocking,
+                        "DEVICE_NO_PROFILE",
+                        "Нет профиля устройства",
+                        "Устройство проекта не связано с профилем каталога.",
+                        "Выберите поддерживаемую модель устройства."));
+                }
+            }
+        }
 
         var channelCount = project.Devices.Sum(x => x.Channels.Count);
-        checks.Add(channelCount > 0
-            ? ReadinessCheck.Pass("io", $"{channelCount} channels are available")
-            : ReadinessCheck.Fail("io", "No I/O channels are available"));
+        if (channelCount == 0)
+        {
+            report.Items.Add(new(
+                ProjectReadinessLevel.Warning,
+                "NO_CHANNELS",
+                "Нет каналов I/O",
+                "В проекте пока нет настроенных каналов ввода/вывода.",
+                "Добавьте оборудование с каналами I/O."));
+        }
 
-        checks.Add(ReadinessCheck.Info("simulation", "The project can be tested without physical equipment"));
-        checks.Add(ReadinessCheck.Info("deployment", "Physical deployment requires a supported and verified device adapter"));
-        return new ProjectReadinessReport(checks);
+        report.Items.Add(new(
+            ProjectReadinessLevel.Information,
+            "SIMULATION_AVAILABLE",
+            "Симуляция доступна",
+            "Проект можно разрабатывать и проверять без физического оборудования.",
+            "Переходите к симуляции до подключения приборов."));
+
+        report.Items.Add(new(
+            ProjectReadinessLevel.Information,
+            "DEPLOYMENT_REQUIRES_VERIFICATION",
+            "Физическая передача требует проверки",
+            "Передача выполняется только после проверки профиля, физической привязки и адаптера.",
+            "Сначала выполните discovery и подтверждение привязки."));
+
+        return report;
     }
-}
-
-public sealed class ProjectReadinessReport(IReadOnlyList<ReadinessCheck> checks)
-{
-    public IReadOnlyList<ReadinessCheck> Checks { get; } = checks;
-    public bool IsReadyForSimulation => Checks.Where(x => x.Required).All(x => x.Passed);
-}
-
-public sealed record ReadinessCheck(string Id, string Message, bool Passed, bool Required, bool Informational)
-{
-    public static ReadinessCheck Pass(string id, string message) => new(id, message, true, true, false);
-    public static ReadinessCheck Fail(string id, string message) => new(id, message, false, true, false);
-    public static ReadinessCheck Info(string id, string message) => new(id, message, true, false, true);
 }
