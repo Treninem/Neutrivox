@@ -39,8 +39,8 @@ public sealed class UnifiedProjectWorkspaceService
             project.Connections.Count,
             project.Logic.Networks.Count,
             project.Logic.Networks.Sum(x => x.Instructions.Count),
-            validation.Issues.Count(x => x.Severity == ValidationSeverity.Error),
-            validation.Issues.Count(x => x.Severity == ValidationSeverity.Warning),
+            validation.Issues.Count(x => x.Severity == Models.ValidationSeverity.Error),
+            validation.Issues.Count(x => x.Severity == Models.ValidationSeverity.Warning),
             project.Devices.Any(x => x.PhysicalBinding is not null),
             project.Logic.Networks.Any(x => x.Instructions.Count > 0));
     }
