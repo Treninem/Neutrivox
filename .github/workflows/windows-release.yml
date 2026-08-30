@@ -13,6 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate release documentation
+        shell: pwsh
+        run: |
+          $files = @('README_RU.md','README_EN.md','CHANGELOG.md','VERSION.txt')
+          foreach ($file in $files) {
+            if (-not (Test-Path $file)) { throw "Missing release file: $file" }
+          }
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -36,9 +44,7 @@ jobs:
       - name: Verify published executable
         shell: pwsh
         run: |
-          $exe = Resolve-Path 'artifacts/windows/Neutrivox.exe'
-          if (-not (Test-Path $exe)) { throw 'Published Neutrivox.exe was not found.' }
-          Write-Host "Verified $exe"
+          if (-not (Test-Path 'artifacts/windows/Neutrivox.exe')) { throw 'Published executable missing' }
 
       - name: Install Inno Setup
         shell: pwsh
@@ -47,44 +53,30 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: |
-          $version = if ($env:GITHUB_REF_NAME -match '^v(\d+\.\d+\.\d+)$') { $Matches[1] } else { '0.1.0' }
-          New-Item -ItemType Directory -Force artifacts/installer | Out-Null
           $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
-          if (-not (Test-Path $iscc)) { throw "ISCC.exe was not found at $iscc" }
-          & $iscc "/DMyAppVersion=$version" 'installer/Neutrivox.iss'
-          $installer = "artifacts/installer/Neutrivox-Setup-$version.exe"
-          if (-not (Test-Path $installer)) { throw "Installer was not created: $installer" }
+          & $iscc 'installer/Neutrivox.iss'
 
       - name: Create archives and checksums
         shell: pwsh
         run: |
-          $version = if ($env:GITHUB_REF_NAME -match '^v(\d+\.\d+\.\d+)$') { $Matches[1] } else { '0.1.0' }
-          Compress-Archive -Path artifacts/windows/* -DestinationPath "artifacts/Neutrivox-win-x64-$version.zip" -Force
-          $files = @(
-            "artifacts/Neutrivox-win-x64-$version.zip",
-            "artifacts/installer/Neutrivox-Setup-$version.exe"
-          )
-          $hashLines = foreach ($file in $files) {
-            $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash *$([System.IO.Path]::GetFileName($file))"
-          }
-          $hashLines | Set-Content "artifacts/SHA256SUMS.txt"
+          Copy-Item README_RU.md artifacts/windows/
+          Copy-Item README_EN.md artifacts/windows/
+          Copy-Item CHANGELOG.md artifacts/windows/
+          Copy-Item VERSION.txt artifacts/windows/
+          Compress-Archive -Path artifacts/windows/* -DestinationPath artifacts/Neutrivox-win-x64.zip -Force
+          Get-FileHash artifacts/Neutrivox-win-x64.zip -Algorithm SHA256 | Out-File artifacts/SHA256SUMS.txt
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Neutrivox-windows-release
-          path: |
-            artifacts/Neutrivox-win-x64-*.zip
-            artifacts/installer/Neutrivox-Setup-*.exe
-            artifacts/SHA256SUMS.txt
+          path: artifacts/
 
       - name: Create GitHub release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/Neutrivox-win-x64-*.zip
-            artifacts/installer/Neutrivox-Setup-*.exe
+            artifacts/Neutrivox-win-x64.zip
             artifacts/SHA256SUMS.txt
           generate_release_notes: true
