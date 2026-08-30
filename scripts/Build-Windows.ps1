@@ -1,6 +1,7 @@
 param(
     [string]$Configuration = 'Release',
     [string]$Runtime = 'win-x64',
+    [Alias('OutputDirectory')]
     [string]$Output = 'artifacts\windows'
 )
 
@@ -33,5 +34,10 @@ dotnet publish .\src\Neutrivox\Neutrivox.csproj `
     -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:PublishTrimmed=false `
     --output $Output
+
+$publishedExe = Join-Path $Output 'Neutrivox.exe'
+if (-not (Test-Path $publishedExe)) {
+    throw "Windows publish completed without expected executable: $publishedExe"
+}
 
 Write-Host "Published to $Output"
