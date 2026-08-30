@@ -76,14 +76,14 @@ var preflightReport = preflight.Check(project, [device.Id]);
 Assert(preflightReport.Checks.Any(x => x.Code == "NOT_MAPPED" && x.Severity == PreflightSeverity.Error), "Unmapped deployment target was not blocked.");
 
 var device2 = new ProjectDevice { DefinitionId = "generic-controller-8io", Name = "Second Controller" };
-device.PhysicalBinding = new PhysicalDeviceBinding
+device.PhysicalBinding = new Neutrivox.Models.PhysicalDeviceBinding
 {
     Endpoint = "COM3",
     Manufacturer = "ОВЕН",
     Model = "ПР100-24.0804.03.1",
     IdentificationState = "Verified"
 };
-device2.PhysicalBinding = new PhysicalDeviceBinding
+device2.PhysicalBinding = new Neutrivox.Models.PhysicalDeviceBinding
 {
     Endpoint = "192.168.1.20:502",
     Manufacturer = "Neutrivox Demo",
