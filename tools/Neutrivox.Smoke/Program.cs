@@ -41,6 +41,9 @@ var serialized = persistence.Serialize(project);
 var loaded = persistence.Deserialize(serialized);
 Assert(loaded.Success && loaded.Project is not null, "Project round-trip failed.");
 Assert(loaded.Project!.Devices.Count == 1, "Project device count changed after round-trip.");
+Assert(loaded.Project.Devices[0].Channels.Count == 2, "Project channel count changed after round-trip.");
+Assert(loaded.Project.Devices[0].Id == device.Id, "Project device identity changed after round-trip.");
+Assert(loaded.Project.Devices[0].Channels[0].Id == device.Channels[0].Id, "Channel identity changed after round-trip.");
 
 var integrity = new ProjectIntegrityService().Check(loaded.Project);
 Assert(integrity.IsValid, "Project integrity check failed after round-trip.");
