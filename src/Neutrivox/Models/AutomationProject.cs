@@ -7,9 +7,9 @@ public sealed class AutomationProject
     public DateTime CreatedAtUtc { get; init; } = DateTime.UtcNow;
     public ProjectMetadata Metadata { get; set; } = new();
     public ProjectStatus Status { get; set; } = ProjectStatus.Draft;
-    public List<ProjectDevice> Devices { get; } = [];
-    public List<DeviceConnection> Connections { get; } = [];
-    public List<ProjectTag> Tags { get; } = [];
+    public List<ProjectDevice> Devices { get; set; } = [];
+    public List<DeviceConnection> Connections { get; set; } = [];
+    public List<ProjectTag> Tags { get; set; } = [];
     public LogicProgram Logic { get; set; } = new();
 }
 
@@ -20,7 +20,7 @@ public sealed class ProjectDevice
     public string Name { get; set; } = string.Empty;
     public DeviceNetworkConfiguration Network { get; set; } = new();
     public PhysicalDeviceBinding? PhysicalBinding { get; set; }
-    public List<IoChannel> Channels { get; } = [];
+    public List<IoChannel> Channels { get; set; } = [];
 }
 
 public sealed class DeviceConnection
