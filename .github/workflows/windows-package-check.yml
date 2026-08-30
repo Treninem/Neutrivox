@@ -1,0 +1,49 @@
+name: Windows Package Check
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore Neutrivox.sln
+
+      - name: Build solution
+        run: dotnet build Neutrivox.sln --configuration Release --no-restore
+
+      - name: Build and run smoke test
+        shell: pwsh
+        run: |
+          dotnet build tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release
+          dotnet run --project tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release --no-build
+
+      - name: Publish Windows x64
+        shell: pwsh
+        run: ./scripts/Build-Windows.ps1 -Configuration Release -Runtime win-x64 -OutputDirectory artifacts/windows
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'artifacts/windows/Neutrivox.exe')) { throw 'Published executable missing.' }
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found: $iscc" }
+          & $iscc '/DMyAppVersion=0.1.0' 'installer/Neutrivox.iss'
+          if (-not (Test-Path 'artifacts/installer/Neutrivox-Setup-0.1.0.exe')) { throw 'Installer output missing.' }
