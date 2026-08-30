@@ -49,9 +49,9 @@ jobs:
         run: |
           $version = if ($env:GITHUB_REF_NAME -match '^v(\d+\.\d+\.\d+)$') { $Matches[1] } else { '0.1.0' }
           New-Item -ItemType Directory -Force artifacts/installer | Out-Null
-          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' \
-            "/DMyAppVersion=$version" \
-            'installer/Neutrivox.iss'
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe was not found at $iscc" }
+          & $iscc "/DMyAppVersion=$version" 'installer/Neutrivox.iss'
           $installer = "artifacts/installer/Neutrivox-Setup-$version.exe"
           if (-not (Test-Path $installer)) { throw "Installer was not created: $installer" }
 
