@@ -3,6 +3,7 @@ name: Windows Release
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     tags: ['v*.*.*']
 
 jobs:
@@ -20,6 +21,9 @@ jobs:
           foreach ($file in $files) {
             if (-not (Test-Path $file)) { throw "Missing release file: $file" }
           }
+          $version = (Get-Content VERSION.txt -Raw).Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid VERSION.txt value: $version" }
+          Write-Host "Release version: $version"
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -44,7 +48,9 @@ jobs:
       - name: Verify published executable
         shell: pwsh
         run: |
-          if (-not (Test-Path 'artifacts/windows/Neutrivox.exe')) { throw 'Published executable missing' }
+          $exe = 'artifacts/windows/Neutrivox.exe'
+          if (-not (Test-Path $exe)) { throw 'Published executable missing' }
+          if ((Get-Item $exe).Length -le 0) { throw 'Published executable is empty' }
 
       - name: Install Inno Setup
         shell: pwsh
@@ -54,17 +60,51 @@ jobs:
         shell: pwsh
         run: |
           $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found: $iscc" }
           & $iscc 'installer/Neutrivox.iss'
+
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          $version = (Get-Content VERSION.txt -Raw).Trim()
+          $installer = "artifacts/installer/Neutrivox-Setup-$version.exe"
+          if (-not (Test-Path $installer)) { throw "Installer missing: $installer" }
+          if ((Get-Item $installer).Length -le 0) { throw 'Installer is empty' }
 
       - name: Create archives and checksums
         shell: pwsh
         run: |
+          $version = (Get-Content VERSION.txt -Raw).Trim()
           Copy-Item README_RU.md artifacts/windows/
           Copy-Item README_EN.md artifacts/windows/
           Copy-Item CHANGELOG.md artifacts/windows/
           Copy-Item VERSION.txt artifacts/windows/
-          Compress-Archive -Path artifacts/windows/* -DestinationPath artifacts/Neutrivox-win-x64.zip -Force
-          Get-FileHash artifacts/Neutrivox-win-x64.zip -Algorithm SHA256 | Out-File artifacts/SHA256SUMS.txt
+          $archive = "artifacts/Neutrivox-win-x64-$version.zip"
+          $installer = "artifacts/installer/Neutrivox-Setup-$version.exe"
+          Compress-Archive -Path artifacts/windows/* -DestinationPath $archive -Force
+          $archiveHash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          $installerHash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          @(
+            "$archiveHash *Neutrivox-win-x64-$version.zip",
+            "$installerHash *Neutrivox-Setup-$version.exe"
+          ) | Set-Content artifacts/SHA256SUMS.txt
+
+      - name: Verify release payload
+        shell: pwsh
+        run: |
+          $version = (Get-Content VERSION.txt -Raw).Trim()
+          $required = @(
+            "artifacts/Neutrivox-win-x64-$version.zip",
+            "artifacts/installer/Neutrivox-Setup-$version.exe",
+            'artifacts/SHA256SUMS.txt',
+            'README_RU.md',
+            'README_EN.md',
+            'CHANGELOG.md',
+            'VERSION.txt'
+          )
+          foreach ($file in $required) {
+            if (-not (Test-Path $file)) { throw "Release payload missing: $file" }
+          }
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
@@ -77,6 +117,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/Neutrivox-win-x64.zip
+            artifacts/Neutrivox-win-x64-*.zip
+            artifacts/installer/Neutrivox-Setup-*.exe
             artifacts/SHA256SUMS.txt
           generate_release_notes: true
