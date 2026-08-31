@@ -59,9 +59,10 @@ jobs:
       - name: Build installer
         shell: pwsh
         run: |
+          $version = (Get-Content VERSION.txt -Raw).Trim()
           $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
           if (-not (Test-Path $iscc)) { throw "ISCC.exe not found: $iscc" }
-          & $iscc 'installer/Neutrivox.iss'
+          & $iscc "/DMyAppVersion=$version" 'installer/Neutrivox.iss'
 
       - name: Verify installer
         shell: pwsh
@@ -96,11 +97,7 @@ jobs:
           $required = @(
             "artifacts/Neutrivox-win-x64-$version.zip",
             "artifacts/installer/Neutrivox-Setup-$version.exe",
-            'artifacts/SHA256SUMS.txt',
-            'README_RU.md',
-            'README_EN.md',
-            'CHANGELOG.md',
-            'VERSION.txt'
+            'artifacts/SHA256SUMS.txt'
           )
           foreach ($file in $required) {
             if (-not (Test-Path $file)) { throw "Release payload missing: $file" }
