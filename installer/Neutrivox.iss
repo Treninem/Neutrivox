@@ -1,5 +1,7 @@
-#define MyAppName "Neutrivox"
+#ifndef MyAppVersion
 #define MyAppVersion "0.1.0"
+#endif
+#define MyAppName "Neutrivox"
 #define MyAppPublisher "Neutrivox"
 #define MyAppExeName "Neutrivox.exe"
 
@@ -21,6 +23,10 @@ WizardStyle=modern
 
 [Files]
 Source: "..\artifacts\windows\Neutrivox.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\README_RU.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\README_EN.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\VERSION.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Neutrivox"; Filename: "{app}\Neutrivox.exe"
