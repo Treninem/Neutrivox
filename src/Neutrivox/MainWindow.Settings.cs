@@ -64,9 +64,27 @@ public partial class MainWindow
             });
             if (_licenseRuntime.Snapshot.ExpiresAtUtc is DateTimeOffset expiration)
                 PageContent.Children.Add(new TextBlock { Text = $"{T("Действует до", "Valid until")}: {expiration.ToLocalTime():g}", Opacity = 0.7 });
+
             PageContent.Children.Add(new TextBlock
             {
-                Text = $"{T("Отпечаток устройства", "Device fingerprint")}: {_licenseRuntime.Fingerprint[..Math.Min(20, _licenseRuntime.Fingerprint.Length)]}…",
+                Text = T(
+                    "Отпечаток этого компьютера для покупки привязанного ключа:",
+                    "This computer fingerprint for a device-bound license:"),
+                Margin = new Avalonia.Thickness(0, 6, 0, 2),
+                Opacity = 0.75
+            });
+            PageContent.Children.Add(new TextBox
+            {
+                Text = _licenseRuntime.Fingerprint,
+                IsReadOnly = true,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap
+            });
+            PageContent.Children.Add(new TextBlock
+            {
+                Text = T(
+                    "Передайте продавцу только этот fingerprint. Пароли и другие данные для выпуска ключа не нужны.",
+                    "Send only this fingerprint to the seller. Passwords or other personal data are not required to issue a key."),
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
                 Opacity = 0.55
             });
         }
