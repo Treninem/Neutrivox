@@ -39,6 +39,7 @@ public sealed class LogicValidationService
     private static void ValidateSource(Guid networkId, Guid instructionId, string? source, string label, HashSet<string> symbols, List<LogicValidationMessage> result)
     {
         if (string.IsNullOrWhiteSpace(source)) return;
+        if (StructuredTextCompilerService.IsLiteral(source)) return;
         if (!symbols.Contains(source)) result.Add(new(networkId, instructionId, LogicValidationSeverity.Error, $"Unknown source {label} '{source}'."));
     }
 }
