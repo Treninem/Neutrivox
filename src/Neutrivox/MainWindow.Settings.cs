@@ -26,18 +26,14 @@ public partial class MainWindow
     private void RefreshLicenseState() => _licenseRuntime = _localLicense.GetCurrent(DateTimeOffset.UtcNow);
 
     private bool CanUsePhysicalDeviceIntegration()
-    {
-        RefreshLicenseState();
-        return _licenseRuntime is not null &&
-               _licensePolicy.CanUse(_licenseRuntime.Snapshot, DateTimeOffset.UtcNow, x => x.PhysicalDeviceIntegration);
-    }
+        => _licensePolicy.CanUse(GetEffectiveLicenseSnapshot(), DateTimeOffset.UtcNow, x => x.PhysicalDeviceIntegration);
 
     private void ShowSettings()
     {
         RefreshLicenseState();
         SetHeader(T("Настройки и лицензия", "Settings & license"),
-            T("Язык, лицензия, пробный период и внешние официальные инструменты.",
-              "Language, license, trial and official external tools."));
+            T("Язык, локальная лицензия/trial, аккаунт для нескольких ПК и официальные внешние инструменты.",
+              "Language, local license/trial, multi-PC account and official external tools."));
         PageContent.Children.Clear();
 
         var language = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -48,7 +44,7 @@ public partial class MainWindow
         PageContent.Children.Add(language);
 
         PageContent.Children.Add(new Separator { Margin = new Avalonia.Thickness(0, 8) });
-        PageContent.Children.Add(new TextBlock { Text = T("Лицензия", "License"), FontSize = 19, FontWeight = Avalonia.Media.FontWeight.SemiBold });
+        PageContent.Children.Add(new TextBlock { Text = T("Локальная лицензия / Trial", "Local license / Trial"), FontSize = 19, FontWeight = Avalonia.Media.FontWeight.SemiBold });
         if (_licenseRuntime is not null)
         {
             PageContent.Children.Add(new TextBlock
@@ -67,33 +63,22 @@ public partial class MainWindow
 
             PageContent.Children.Add(new TextBlock
             {
-                Text = T(
-                    "Отпечаток этого компьютера для покупки привязанного ключа:",
-                    "This computer fingerprint for a device-bound license:"),
-                Margin = new Avalonia.Thickness(0, 6, 0, 2),
-                Opacity = 0.75
+                Text = T("Отпечаток этого компьютера для покупки привязанного ключа:", "This computer fingerprint for a device-bound license:"),
+                Margin = new Avalonia.Thickness(0, 6, 0, 2), Opacity = 0.75
             });
-            PageContent.Children.Add(new TextBox
-            {
-                Text = _licenseRuntime.Fingerprint,
-                IsReadOnly = true,
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap
-            });
+            PageContent.Children.Add(new TextBox { Text = _licenseRuntime.Fingerprint, IsReadOnly = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap });
             PageContent.Children.Add(new TextBlock
             {
-                Text = T(
-                    "Передайте продавцу только этот fingerprint. Пароли и другие данные для выпуска ключа не нужны.",
-                    "Send only this fingerprint to the seller. Passwords or other personal data are not required to issue a key."),
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                Opacity = 0.55
+                Text = T("Передайте продавцу только этот fingerprint. Пароли и другие данные для выпуска ключа не нужны.",
+                         "Send only this fingerprint to the seller. Passwords or other personal data are not required to issue a key."),
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap, Opacity = 0.55
             });
         }
 
-        PageContent.Children.Add(new TextBlock { Text = T("Активация ключа", "License activation"), FontSize = 17, FontWeight = Avalonia.Media.FontWeight.SemiBold, Margin = new Avalonia.Thickness(0, 8, 0, 0) });
+        PageContent.Children.Add(new TextBlock { Text = T("Активация локального ключа", "Local key activation"), FontSize = 17, FontWeight = Avalonia.Media.FontWeight.SemiBold, Margin = new Avalonia.Thickness(0, 8, 0, 0) });
         var keyBox = new TextBox
         {
-            AcceptsReturn = true,
-            MinHeight = 90,
+            AcceptsReturn = true, MinHeight = 90,
             Watermark = T("Вставьте подписанный ключ лицензии", "Paste the signed license key"),
             TextWrapping = Avalonia.Media.TextWrapping.Wrap
         };
@@ -103,12 +88,13 @@ public partial class MainWindow
         {
             var result = _localLicense.Activate(keyBox.Text ?? string.Empty, DateTimeOffset.UtcNow);
             _licenseMessage = _english ? result.MessageEn : result.MessageRu;
-            RefreshLicenseState();
-            ShowSettings();
+            RefreshLicenseState(); ShowSettings();
         };
         PageContent.Children.Add(activate);
         if (!string.IsNullOrWhiteSpace(_licenseMessage))
             PageContent.Children.Add(new TextBlock { Text = _licenseMessage, TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+
+        AddAccountSettingsSection();
 
         PageContent.Children.Add(new Separator { Margin = new Avalonia.Thickness(0, 10) });
         PageContent.Children.Add(new TextBlock { Text = T("Тарифы", "Plans"), FontSize = 19, FontWeight = Avalonia.Media.FontWeight.SemiBold });
@@ -119,8 +105,7 @@ public partial class MainWindow
             PageContent.Children.Add(new TextBlock
             {
                 Text = $"{(_english ? plan.NameEn : plan.NameRu)} — {price}{duration}\n{(_english ? plan.DescriptionEn : plan.DescriptionRu)}",
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                Margin = new Avalonia.Thickness(0, 3)
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap, Margin = new Avalonia.Thickness(0, 3)
             });
         }
 
@@ -128,17 +113,11 @@ public partial class MainWindow
         PageContent.Children.Add(new TextBlock { Text = T("ОВЕН: официальная утилита передачи", "OWEN: official transfer utility"), FontSize = 19, FontWeight = Avalonia.Media.FontWeight.SemiBold });
         PageContent.Children.Add(new TextBlock
         {
-            Text = T(
-                "Neutrivox не подменяет протокол загрузки. Для поддерживаемых и аппаратно проверенных ПР используется официальная Owen Logic Replication Utility.",
-                "Neutrivox does not invent a programming protocol. Supported and hardware-verified PR devices use the official Owen Logic Replication Utility."),
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            Opacity = 0.7
+            Text = T("Neutrivox не подменяет протокол загрузки. Для поддерживаемых и аппаратно проверенных ПР используется официальная Owen Logic Replication Utility.",
+                     "Neutrivox does not invent a programming protocol. Supported and hardware-verified PR devices use the official Owen Logic Replication Utility."),
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap, Opacity = 0.7
         });
-        var utilityPath = new TextBox
-        {
-            Text = _settings.OwenReplicationUtilityPath ?? string.Empty,
-            Watermark = T("Путь к официальной утилите .exe", "Path to the official utility .exe")
-        };
+        var utilityPath = new TextBox { Text = _settings.OwenReplicationUtilityPath ?? string.Empty, Watermark = T("Путь к официальной утилите .exe", "Path to the official utility .exe") };
         utilityPath.LostFocus += (_, _) =>
         {
             _settings.OwenReplicationUtilityPath = string.IsNullOrWhiteSpace(utilityPath.Text) ? null : utilityPath.Text.Trim();
@@ -158,27 +137,22 @@ public partial class MainWindow
             if (!string.IsNullOrWhiteSpace(path))
             {
                 _settings.OwenReplicationUtilityPath = path;
-                _settingsService.Save(_settings);
-                ShowSettings();
+                _settingsService.Save(_settings); ShowSettings();
             }
         };
         PageContent.Children.Add(browse);
 
+        var effective = GetEffectiveLicenseSnapshot();
         PageContent.Children.Add(new TextBlock
         {
-            Text = $"Neutrivox {GetProductVersion()}",
-            Opacity = 0.5,
-            Margin = new Avalonia.Thickness(0, 14, 0, 0)
+            Text = $"Neutrivox {GetProductVersion()} • {T("эффективная редакция", "effective edition")}: {effective.Edition}",
+            Opacity = 0.5, Margin = new Avalonia.Thickness(0, 14, 0, 0)
         });
     }
 
     private void ToggleLanguage()
     {
-        _english = !_english;
-        _settings.English = _english;
-        _settingsService.Save(_settings);
-        ApplyLocalization();
-        ShowSettings();
+        _english = !_english; _settings.English = _english; _settingsService.Save(_settings); ApplyLocalization(); ShowSettings();
     }
 
     private void ApplyLocalization()
@@ -206,6 +180,5 @@ public partial class MainWindow
         UpdateProjectPanel();
     }
 
-    private static string GetProductVersion() =>
-        typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+    private static string GetProductVersion() => typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
 }
