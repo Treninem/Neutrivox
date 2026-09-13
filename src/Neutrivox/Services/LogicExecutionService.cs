@@ -1,3 +1,4 @@
+using System.Globalization;
 using Neutrivox.Models;
 
 namespace Neutrivox.Services;
@@ -46,15 +47,34 @@ public sealed class LogicExecutionService
             LogicInstructionKind.Xor => AsBool(a) ^ AsBool(b),
             LogicInstructionKind.Set => true,
             LogicInstructionKind.Reset => false,
-            LogicInstructionKind.CompareEqual => Equals(a, b),
+            LogicInstructionKind.CompareEqual => ValuesEqual(a, b),
             LogicInstructionKind.CompareGreater => AsNumber(a) > AsNumber(b),
             LogicInstructionKind.CompareLess => AsNumber(a) < AsNumber(b),
             _ => throw new InvalidOperationException("Unsupported instruction.")
         };
     }
 
-    private static object? Get(Dictionary<string, object?> v, string? key) => string.IsNullOrWhiteSpace(key) ? null : v.TryGetValue(key, out var value) ? value : throw new InvalidOperationException($"Unknown value '{key}'.");
-    private static bool AsBool(object? value) => value switch { bool b => b, int i => i != 0, double d => Math.Abs(d) > double.Epsilon, _ => false };
+    private static object? Get(Dictionary<string, object?> values, string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return null;
+        var value = key.Trim();
+        if (value.Equals("TRUE", StringComparison.OrdinalIgnoreCase)) return true;
+        if (value.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) return false;
+        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)) return number;
+        return values.TryGetValue(value, out var existing)
+            ? existing
+            : throw new InvalidOperationException($"Unknown value '{value}'.");
+    }
+
+    private static bool ValuesEqual(object? left, object? right)
+    {
+        if (left is bool || right is bool) return AsBool(left) == AsBool(right);
+        if (left is IConvertible && right is IConvertible)
+            return Math.Abs(AsNumber(left) - AsNumber(right)) < 0.0000001;
+        return Equals(left, right);
+    }
+
+    private static bool AsBool(object? value) => value switch { bool b => b, int i => i != 0, long l => l != 0, float f => Math.Abs(f) > float.Epsilon, double d => Math.Abs(d) > double.Epsilon, _ => false };
     private static double AsNumber(object? value) => value switch { int i => i, long l => l, float f => f, double d => d, bool b => b ? 1 : 0, _ => 0 };
 
     private static void ApplyValues(AutomationProject project, SimulationSession session, Dictionary<string, object?> values)
