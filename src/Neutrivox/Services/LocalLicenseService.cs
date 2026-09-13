@@ -30,6 +30,7 @@ public sealed class LocalLicenseService
     private readonly DeviceFingerprintService _fingerprints = new();
     private readonly CommercialPlanCatalogService _plans = new();
     private readonly RsaLicenseSignatureVerifier _verifier = new();
+    private readonly TrialAnchorService? _trialAnchor;
     private readonly string _statePath;
 
     public LocalLicenseService(string? statePath = null)
@@ -37,6 +38,7 @@ public sealed class LocalLicenseService
         _statePath = statePath ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Neutrivox", "license-state.json");
+        _trialAnchor = statePath is null ? new TrialAnchorService() : null;
     }
 
     public LicenseRuntimeState GetCurrent(DateTimeOffset nowUtc)
@@ -109,11 +111,12 @@ public sealed class LocalLicenseService
         {
             var payload = JsonSerializer.Deserialize<LicenseKeyPayload>(key);
             if (payload is null || !_verifier.Verify(payload)) return null;
+            var plan = _plans.Find(payload.PlanId);
+            if (plan is null) return null;
+            if (plan.IsPubliclySellable && plan.PriceRub > 0m && string.IsNullOrWhiteSpace(payload.BoundDeviceFingerprint)) return null;
             if (!string.IsNullOrWhiteSpace(payload.BoundDeviceFingerprint) &&
                 !string.Equals(payload.BoundDeviceFingerprint, fingerprint, StringComparison.Ordinal)) return null;
             if (payload.ExpiresAtUtc is not null && payload.ExpiresAtUtc <= nowUtc) return null;
-            var plan = _plans.Find(payload.PlanId);
-            if (plan is null) return null;
             return new(
                 new LicenseSnapshot(plan.Edition, LicenseState.Active, payload.ExpiresAtUtc, plan.NameEn),
                 fingerprint,
@@ -127,25 +130,33 @@ public sealed class LocalLicenseService
 
     private LocalLicenseState LoadOrCreate(DateTimeOffset nowUtc, string fingerprint)
     {
+        var anchor = _trialAnchor?.ReadStartedAtUtc();
         try
         {
             if (File.Exists(_statePath))
             {
                 var existing = JsonSerializer.Deserialize<LocalLicenseState>(File.ReadAllText(_statePath), JsonOptions);
                 if (existing is not null && existing.TrialStartedAtUtc != default && !string.IsNullOrWhiteSpace(existing.Fingerprint))
+                {
+                    if (anchor is DateTimeOffset anchored && anchored < existing.TrialStartedAtUtc)
+                        existing.TrialStartedAtUtc = anchored;
+                    _trialAnchor?.WriteEarliest(existing.TrialStartedAtUtc);
                     return existing;
+                }
             }
         }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
         catch (JsonException) { }
 
+        var startedAt = anchor is DateTimeOffset previous && previous < nowUtc ? previous : nowUtc;
         var created = new LocalLicenseState
         {
-            TrialStartedAtUtc = nowUtc,
+            TrialStartedAtUtc = startedAt,
             LastSeenAtUtc = nowUtc,
             Fingerprint = fingerprint
         };
+        _trialAnchor?.WriteEarliest(startedAt);
         Save(created);
         return created;
     }
