@@ -1,7 +1,33 @@
 namespace Neutrivox.Models;
 
-public enum DeviceTransport { None, Usb, SerialRs485, Ethernet }
-public enum DeviceProtocolKind { None, ModbusRtu, ModbusAscii, ModbusTcp, VendorSpecific }
+public enum DeviceTransport
+{
+    None,
+    Usb,
+    SerialRs485,
+    Ethernet,
+    Wifi,
+    Cellular,
+    CanBus,
+    Fieldbus
+}
+
+public enum DeviceProtocolKind
+{
+    None,
+    ModbusRtu,
+    ModbusAscii,
+    ModbusTcp,
+    Profinet,
+    S7,
+    EtherNetIp,
+    EtherCat,
+    CanOpen,
+    OpcUa,
+    Mqtt,
+    VendorSpecific
+}
+
 public enum DeviceSupportLevel { ModelProfiled, Discoverable, ReadWriteSupported }
 
 public sealed class DeviceProfile

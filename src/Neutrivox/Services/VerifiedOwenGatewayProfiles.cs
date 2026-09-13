@@ -7,13 +7,13 @@ public static class VerifiedOwenGatewayProfiles
 {
     public static void Register(DeviceProfileRegistry registry)
     {
-        RegisterGateway(registry, "pm210", "ПМ210", "ПМ210-230", [DeviceTransport.SerialRs485, DeviceTransport.Usb]);
-        RegisterGateway(registry, "pm210-24", "ПМ210", "ПМ210-24", [DeviceTransport.SerialRs485, DeviceTransport.Usb]);
-        RegisterGateway(registry, "pm210-230-4g", "ПМ210", "ПМ210-230.4G", [DeviceTransport.SerialRs485, DeviceTransport.Usb]);
+        RegisterGateway(registry, "pm210", "ПМ210", "ПМ210-230", [DeviceTransport.SerialRs485, DeviceTransport.Usb, DeviceTransport.Cellular]);
+        RegisterGateway(registry, "pm210-24", "ПМ210", "ПМ210-24", [DeviceTransport.SerialRs485, DeviceTransport.Usb, DeviceTransport.Cellular]);
+        RegisterGateway(registry, "pm210-230-4g", "ПМ210", "ПМ210-230.4G", [DeviceTransport.SerialRs485, DeviceTransport.Usb, DeviceTransport.Cellular]);
         RegisterGateway(registry, "pe210-230", "ПЕ210", "ПЕ210-230", [DeviceTransport.SerialRs485, DeviceTransport.Usb, DeviceTransport.Ethernet]);
         RegisterGateway(registry, "pe210-24", "ПЕ210", "ПЕ210-24", [DeviceTransport.SerialRs485, DeviceTransport.Usb, DeviceTransport.Ethernet]);
-        RegisterGateway(registry, "pv210-230", "ПВ210", "ПВ210-230", [DeviceTransport.SerialRs485, DeviceTransport.Usb]);
-        RegisterGateway(registry, "pv210-24", "ПВ210", "ПВ210-24", [DeviceTransport.SerialRs485, DeviceTransport.Usb]);
+        RegisterGateway(registry, "pv210-230", "ПВ210", "ПВ210-230", [DeviceTransport.SerialRs485, DeviceTransport.Usb, DeviceTransport.Wifi]);
+        RegisterGateway(registry, "pv210-24", "ПВ210", "ПВ210-24", [DeviceTransport.SerialRs485, DeviceTransport.Usb, DeviceTransport.Wifi]);
     }
 
     private static void RegisterGateway(DeviceProfileRegistry registry, string idSuffix, string family, string variant, IReadOnlyList<DeviceTransport> transports)
@@ -24,13 +24,14 @@ public static class VerifiedOwenGatewayProfiles
             Manufacturer = "ОВЕН",
             ModelFamily = family,
             VariantPattern = variant,
-            Description = $"Документированный сетевой шлюз {variant} для связи приборов по RS-485 с OwenCloud.",
+            Description = $"Документированный сетевой шлюз {variant} для связи приборов по RS-485/Modbus с OwenCloud.",
             SupportLevel = DeviceSupportLevel.ModelProfiled,
             Transports = transports.ToList(),
-            Protocols = [DeviceProtocolKind.ModbusRtu, DeviceProtocolKind.ModbusAscii],
+            Protocols = [DeviceProtocolKind.ModbusRtu, DeviceProtocolKind.ModbusAscii, DeviceProtocolKind.VendorSpecific],
             Capabilities =
             [
-                new("RS-485 / Modbus field bus", true, true, "The gateway documentation describes RS-485 connection to devices using Modbus RTU/ASCII."),
+                new("RS-485 / Modbus field bus", true, true, "Official documentation describes RS-485 connection to devices using Modbus RTU/ASCII."),
+                new("Gateway uplink", true, true, "PM210 uses cellular communication, PE210 uses Ethernet and PV210 uses Wi-Fi for the OwenCloud uplink."),
                 new("Gateway configuration", true, true, "Configuration interface depends on the exact gateway variant."),
                 new("Controller program transfer", false, false, "A gateway profile is not a claim that controller programs can be uploaded through this device.")
             ],
