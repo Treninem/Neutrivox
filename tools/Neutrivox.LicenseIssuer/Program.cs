@@ -18,7 +18,7 @@ var durationText = Arg("--days", args);
 
 if (string.IsNullOrWhiteSpace(privateKeyPath) || !File.Exists(privateKeyPath))
 {
-    Console.Error.WriteLine("Usage: --private-key <pem> [--plan professional-30d] [--subject name] [--fingerprint hash] [--days N] [--output file]");
+    Console.Error.WriteLine("Usage: --private-key <pem> [--plan professional-30d] [--subject name] --fingerprint <customer fingerprint> [--days N] [--output file]");
     return 2;
 }
 
@@ -28,6 +28,11 @@ if (plan is null)
 {
     Console.Error.WriteLine($"Unknown plan: {planId}");
     return 3;
+}
+if (plan.IsPubliclySellable && plan.PriceRub > 0m && string.IsNullOrWhiteSpace(fingerprint))
+{
+    Console.Error.WriteLine("Paid public licenses must include --fingerprint so the key cannot be transferred to another customer device.");
+    return 4;
 }
 
 var issuedAt = DateTimeOffset.UtcNow;
