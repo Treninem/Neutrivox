@@ -22,3 +22,7 @@ jobs:
         run: dotnet build tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release
       - name: Run smoke test
         run: dotnet run --project tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release --no-build
+      - name: Build license issuer
+        run: dotnet build tools/Neutrivox.LicenseIssuer/Neutrivox.LicenseIssuer.csproj --configuration Release
+      - name: Build account license server
+        run: dotnet build server/Neutrivox.LicenseServer/Neutrivox.LicenseServer.csproj --configuration Release

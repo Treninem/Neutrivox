@@ -7,6 +7,11 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>Neutrivox</AssemblyName>
     <RootNamespace>Neutrivox</RootNamespace>
+    <Version>0.2.0</Version>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <FileVersion>0.2.0.0</FileVersion>
+    <Product>Neutrivox</Product>
+    <Description>Industrial automation design, simulation and verified device integration environment.</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.2.6" />

@@ -41,16 +41,22 @@ jobs:
       - name: Smoke test
         run: dotnet run --project tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release --no-build
 
+      - name: License issuer build
+        run: dotnet build tools/Neutrivox.LicenseIssuer/Neutrivox.LicenseIssuer.csproj --configuration Release
+
       - name: Publish Windows x64
         shell: pwsh
         run: ./scripts/Build-Windows.ps1 -Configuration Release -Runtime win-x64 -OutputDirectory artifacts/windows
 
-      - name: Verify published executable
+      - name: Verify published executable version
         shell: pwsh
         run: |
+          $version = (Get-Content VERSION.txt -Raw).Trim()
           $exe = 'artifacts/windows/Neutrivox.exe'
           if (-not (Test-Path $exe)) { throw 'Published executable missing' }
           if ((Get-Item $exe).Length -le 0) { throw 'Published executable is empty' }
+          $fileVersion = (Get-Item $exe).VersionInfo.FileVersion
+          if ($fileVersion -notlike "$version*") { throw "Executable version $fileVersion does not match VERSION.txt $version" }
 
       - name: Install Inno Setup
         shell: pwsh

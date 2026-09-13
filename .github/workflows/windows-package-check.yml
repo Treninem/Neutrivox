@@ -3,6 +3,8 @@ name: Windows Package Check
 on:
   push:
     branches: ['main']
+  pull_request:
+    branches: ['main']
   workflow_dispatch:
 
 jobs:
@@ -14,6 +16,14 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content VERSION.txt -Raw).Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid VERSION.txt value: $version" }
+          "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Restore
         run: dotnet restore Neutrivox.sln
@@ -27,6 +37,9 @@ jobs:
           dotnet build tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release
           dotnet run --project tools/Neutrivox.Smoke/Neutrivox.Smoke.csproj --configuration Release --no-build
 
+      - name: Build license issuer
+        run: dotnet build tools/Neutrivox.LicenseIssuer/Neutrivox.LicenseIssuer.csproj --configuration Release
+
       - name: Publish Windows x64
         shell: pwsh
         run: ./scripts/Build-Windows.ps1 -Configuration Release -Runtime win-x64 -OutputDirectory artifacts/windows
@@ -35,6 +48,8 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path 'artifacts/windows/Neutrivox.exe')) { throw 'Published executable missing.' }
+          $info = (Get-Item 'artifacts/windows/Neutrivox.exe').VersionInfo
+          Write-Host "Published file version: $($info.FileVersion)"
 
       - name: Install Inno Setup
         shell: pwsh
@@ -43,7 +58,17 @@ jobs:
       - name: Compile installer
         shell: pwsh
         run: |
+          $version = '${{ steps.version.outputs.version }}'
           $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
           if (-not (Test-Path $iscc)) { throw "ISCC.exe not found: $iscc" }
-          & $iscc '/DMyAppVersion=0.1.0' 'installer/Neutrivox.iss'
-          if (-not (Test-Path 'artifacts/installer/Neutrivox-Setup-0.1.0.exe')) { throw 'Installer output missing.' }
+          & $iscc "/DMyAppVersion=$version" 'installer/Neutrivox.iss'
+          $installer = "artifacts/installer/Neutrivox-Setup-$version.exe"
+          if (-not (Test-Path $installer)) { throw "Installer output missing: $installer" }
+
+      - name: Upload package check artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Neutrivox-package-check-${{ steps.version.outputs.version }}
+          path: |
+            artifacts/windows/
+            artifacts/installer/

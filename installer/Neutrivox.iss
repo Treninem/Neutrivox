@@ -1,5 +1,5 @@
 #ifndef MyAppVersion
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.2.0"
 #endif
 #define MyAppName "Neutrivox"
 #define MyAppPublisher "Neutrivox"
@@ -10,6 +10,9 @@ AppId={{B9B2F3E3-2B0A-4F16-AE5D-5D2E8B9A71C4}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+VersionInfoVersion={#MyAppVersion}
+VersionInfoProductName={#MyAppName}
+VersionInfoDescription=Neutrivox industrial automation environment
 DefaultDirName={autopf}\Neutrivox
 DefaultGroupName=Neutrivox
 OutputDir=..\artifacts\installer
@@ -20,6 +23,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 WizardStyle=modern
+UninstallDisplayName=Neutrivox
 
 [Files]
 Source: "..\artifacts\windows\Neutrivox.exe"; DestDir: "{app}"; Flags: ignoreversion

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0
+
+- Connected the existing project persistence layer to the desktop UI: Open, Save and Save As now work with `.neutrivox` files.
+- Added persistent 30-second recovery snapshots that survive application restarts and can be restored from the Projects page.
+- Added a persistent 7-day Professional trial with automatic fallback to the usable Free edition after expiry.
+- Added production RSA license-signature verification; the private signing key is not stored in the repository or application.
+- Added an offline `Neutrivox.LicenseIssuer` owner tool for creating signed, optionally device-bound license payloads.
+- Added Settings & License UI with RU/EN persistence, plan display, activation, device fingerprint display and OWEN utility configuration.
+- Replaced the placeholder project validation page with project health, logic validation and release pre-check results.
+- Expanded the visible project catalog across OWEN, Siemens, Schneider Electric, Mitsubishi Electric, OMRON, Delta, WAGO, Allen-Bradley, Beckhoff and Weintek families.
+- Added explicit COM/Modbus RTU and TCP/502 discovery flows with cancellation and a separate confirmation step before binding a discovered device.
+- Added a safe sequential deployment UI with target selection, stale-plan protection, explicit `DEPLOY` confirmation, cancellation and execution logging.
+- Registered the official OWEN Replication Utility adapter integration point; physical transfer remains blocked unless the exact profile is marked hardware-verified/read-write supported.
+- Unified application, installer and CI package versioning at 0.2.0 and added version checks to the Windows release workflow.
+- Added smoke coverage for trial expiry/fallback, persistent settings, persistent recovery and invalid RSA signatures.
+
 ## 0.1.1
 
 - Expanded the built-in equipment catalog beyond OWEN PR100.
