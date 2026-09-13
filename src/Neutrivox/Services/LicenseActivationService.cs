@@ -39,12 +39,14 @@ public sealed class LicenseActivationService
             return Fail("Лицензионный ключ неполный.", "License key is incomplete.");
         if (!_signatureVerifier.Verify(payload))
             return Fail("Подпись лицензионного ключа недействительна.", "License key signature is invalid.");
-        if (!string.IsNullOrWhiteSpace(payload.BoundDeviceFingerprint) && !CryptographicEquals(payload.BoundDeviceFingerprint, request.DeviceFingerprint))
-            return Fail("Ключ привязан к другому устройству.", "License key is bound to another device.");
 
         var plan = _plans.Find(payload.PlanId);
         if (plan is null || !plan.IsPubliclySellable && plan.Edition != ProductEdition.Owner)
             return Fail("Лицензионный план не поддерживается.", "License plan is not supported.");
+        if (plan.IsPubliclySellable && plan.PriceRub > 0m && string.IsNullOrWhiteSpace(payload.BoundDeviceFingerprint))
+            return Fail("Коммерческий ключ должен быть привязан к устройству покупателя.", "A commercial key must be bound to the customer's device.");
+        if (!string.IsNullOrWhiteSpace(payload.BoundDeviceFingerprint) && !CryptographicEquals(payload.BoundDeviceFingerprint, request.DeviceFingerprint))
+            return Fail("Ключ привязан к другому устройству.", "License key is bound to another device.");
         if (payload.ExpiresAtUtc is not null && payload.ExpiresAtUtc <= nowUtc)
             return Fail("Срок действия лицензии истёк.", "License has expired.");
         if (_activatedKeys.TryGetValue(payload.KeyId, out var fingerprint))
