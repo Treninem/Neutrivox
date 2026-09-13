@@ -6,6 +6,8 @@ public sealed class ApplicationSettings
 {
     public bool English { get; set; }
     public string? OwenReplicationUtilityPath { get; set; }
+    public string LicenseServerUrl { get; set; } = "https://license.neutrivox.local";
+    public string? AccountEmail { get; set; }
 }
 
 public sealed class ApplicationSettingsService
