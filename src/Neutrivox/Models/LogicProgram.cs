@@ -3,8 +3,17 @@ namespace Neutrivox.Models;
 public sealed class LogicProgram
 {
     public string Name { get; set; } = "Main";
+    public LogicEditorMode EditorMode { get; set; } = LogicEditorMode.Fbd;
+    public string StructuredTextSource { get; set; } = string.Empty;
     public List<LogicNetwork> Networks { get; } = [];
     public List<LogicVariable> Variables { get; } = [];
+}
+
+public enum LogicEditorMode
+{
+    Fbd,
+    Ladder,
+    StructuredText
 }
 
 public sealed class LogicNetwork
