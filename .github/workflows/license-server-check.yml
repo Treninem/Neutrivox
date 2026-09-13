@@ -1,0 +1,30 @@
+name: License Server Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore server
+        run: dotnet restore server/Neutrivox.LicenseServer/Neutrivox.LicenseServer.csproj
+      - name: Build server
+        run: dotnet build server/Neutrivox.LicenseServer/Neutrivox.LicenseServer.csproj -c Release --no-restore
+      - name: Publish server
+        run: dotnet publish server/Neutrivox.LicenseServer/Neutrivox.LicenseServer.csproj -c Release -o artifacts/license-server --no-restore
+      - name: Build Docker image
+        run: docker build -f server/Neutrivox.LicenseServer/Dockerfile -t neutrivox-license-server:ci .
+      - name: Upload server artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Neutrivox-license-server
+          path: artifacts/license-server/
