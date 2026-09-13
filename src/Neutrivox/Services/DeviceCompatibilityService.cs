@@ -3,7 +3,12 @@ using Neutrivox.Models;
 namespace Neutrivox.Services;
 
 public sealed record CompatibilityIssue(string Severity, string Message);
-public sealed record DeviceCompatibilityResult(bool Compatible, IReadOnlyList<CompatibilityIssue> Issues);
+public sealed record DeviceCompatibilityResult(bool Compatible, IReadOnlyList<CompatibilityIssue> Issues)
+{
+    public string Message => Issues.Count == 0
+        ? "Compatible with the selected documented profile."
+        : string.Join(" ", Issues.Select(x => $"[{x.Severity}] {x.Message}"));
+}
 
 /// <summary>Checks whether a project device can be associated with a documented profile.</summary>
 public sealed class DeviceCompatibilityService
