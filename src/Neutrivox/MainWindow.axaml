@@ -29,6 +29,7 @@
         <Button x:Name="InputsNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Inputs">⇄  Входы и выходы</Button>
         <Button x:Name="CheckNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Check">✓  Проверка</Button>
         <Button x:Name="SettingsNav" HorizontalContentAlignment="Left" Click="NavigationButton_OnClick" Tag="Settings">⚙  Настройки</Button>
+        <Button x:Name="HelpNav" HorizontalContentAlignment="Left" Click="HelpNavigationButton_OnClick" Tag="Help">?  Помощь</Button>
       </StackPanel></Border>
       <Border Grid.Column="1" Background="#111A33" CornerRadius="12" Padding="24"><Grid RowDefinitions="Auto,Auto,*">
         <TextBlock x:Name="PageTitle" Text="Добро пожаловать в Neutrivox" FontSize="28" FontWeight="Bold" Foreground="White"/>
