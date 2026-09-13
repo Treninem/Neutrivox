@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Neutrivox.Models;
 using Neutrivox.Services;
 
@@ -42,6 +43,13 @@ internal static class ReleaseCandidateSmokeChecks
                 "invalid", "professional-30d", "smoke", null, start, start.AddDays(30), Convert.ToBase64String([1, 2, 3]));
             Require(!new RsaLicenseSignatureVerifier().Verify(invalidPayload),
                 "RSA verifier accepted an invalid signature.");
+
+            var unboundPaidPayload = new LicenseKeyPayload(
+                "paid-unbound", "professional-30d", "smoke", null, start, start.AddDays(30), "TEST");
+            var activation = new LicenseActivationService(new CommercialPlanCatalogService(), new AcceptTestSignatureVerifier())
+                .Activate(new LicenseActivationRequest(JsonSerializer.Serialize(unboundPaidPayload), "machine-A"), start);
+            Require(!activation.Success,
+                "A transferable unbound paid license was accepted; paid public keys must be device-bound.");
         }
         finally
         {
@@ -52,5 +60,10 @@ internal static class ReleaseCandidateSmokeChecks
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private sealed class AcceptTestSignatureVerifier : ILicenseSignatureVerifier
+    {
+        public bool Verify(LicenseKeyPayload payload) => payload.Signature == "TEST";
     }
 }
